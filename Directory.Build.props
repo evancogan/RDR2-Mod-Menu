@@ -1,0 +1,23 @@
+<Project>
+  <!-- Shared settings for every mod under Mods\. Each mod builds to its own DLL in the game's scripts folder. -->
+  <PropertyGroup>
+    <RDR2Dir>D:\SteamLibrary\steamapps\common\Red Dead Redemption 2</RDR2Dir>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>AIPlayground</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="ScriptHookRDRNetAPI">
+      <HintPath>$(RDR2Dir)\ScriptHookRDRNetAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <!-- Shared helpers are compiled into each mod, so every mod DLL stands alone. -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Common\**\*.cs" Link="Common\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

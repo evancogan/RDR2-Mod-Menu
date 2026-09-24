@@ -1,3 +1,10 @@
 <Solution>
-  <Project Path="AIPlayground/AIPlayground.csproj" />
+  <Folder Name="/Mods/">
+    <Project Path="Mods/DynamiteGun/DynamiteGun.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="README.md" />
+  </Folder>
 </Solution>
