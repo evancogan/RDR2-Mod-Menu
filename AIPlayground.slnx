@@ -1,10 +1,12 @@
 <Solution>
   <Folder Name="/Mods/">
     <Project Path="Mods/DynamiteGun/DynamiteGun.csproj" />
+    <Project Path="Mods/FlyingHorse/FlyingHorse.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
+    <File Path="mods.ps1" />
     <File Path="README.md" />
   </Folder>
 </Solution>

@@ -1,4 +1,3 @@
-using System;
 using System.Windows.Forms;
 using RDR2;
 using RDR2.Math;
@@ -7,32 +6,27 @@ using Screen = RDR2.UI.Screen;
 namespace AIPlayground
 {
     // Every bullet the player fires explodes like dynamite where it lands.
-    // Toggle with F10.
-    public class DynamiteGun : Script
+    public class DynamiteGun : ModScript
     {
-        private const Keys ToggleKey = Keys.F10;
+        protected override Keys ToggleKey => Keys.F10;
+
+        protected override bool EnabledOnStart => true;
 
         // Don't blow up impacts this close to the player, so point-blank shots aren't suicide.
         private const float MinSafeDistance = 5.0f;
 
-        private bool enabled = true;
         private bool wasShooting;
         private Vector3 lastImpact = Vector3.Zero;
 
-        public DynamiteGun()
+        protected override bool OnEnable()
         {
-            Tick += OnTick;
-            KeyDown += OnKeyDown;
-            Log.Write("DynamiteGun started");
+            // Forget impacts from shots fired while off, so turning on doesn't blow up an old one.
+            Natives.TryGetLastWeaponImpact(Game.Player.Character, out lastImpact);
+            return true;
         }
 
-        private void OnTick(object sender, EventArgs e)
+        protected override void OnEnabledTick()
         {
-            if (!enabled)
-            {
-                return;
-            }
-
             Ped player = Game.Player.Character;
 
             bool isShooting = player.IsShooting;
@@ -59,16 +53,6 @@ namespace AIPlayground
             Log.Write($"Impact at {impact}, {distance:F1}m away: exploding");
             Screen.DisplaySubtitle($"BOOM ({distance:F0}m)");
             World.AddExplosion(impact, (int)eExplosionTag.Dynamite, 1.0f, 1.0f);
-        }
-
-        private void OnKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == ToggleKey)
-            {
-                enabled = !enabled;
-                Log.Write($"Toggled {(enabled ? "ON" : "OFF")}");
-                Screen.DisplaySubtitle(enabled ? "Dynamite rounds: ON" : "Dynamite rounds: OFF");
-            }
         }
     }
 }

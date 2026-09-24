@@ -1,6 +1,11 @@
 <Project>
+  <!-- Copy the built DLL wherever the mod currently lives: scripts_disabled if it was turned off, otherwise scripts. -->
   <Target Name="DeployToGame" AfterTargets="Build">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(RDR2Dir)\scripts" SkipUnchangedFiles="true" />
-    <Message Importance="high" Text="$(TargetName) -> $(RDR2Dir)\scripts\$(TargetFileName)" />
+    <PropertyGroup>
+      <DeployDir>$(RDR2Dir)\scripts</DeployDir>
+      <DeployDir Condition="Exists('$(RDR2Dir)\scripts_disabled\$(TargetFileName)')">$(RDR2Dir)\scripts_disabled</DeployDir>
+    </PropertyGroup>
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployDir)" SkipUnchangedFiles="true" />
+    <Message Importance="high" Text="$(TargetName) -> $(DeployDir)\$(TargetFileName)" />
   </Target>
 </Project>
