@@ -5,7 +5,7 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game me
 ## In-game
 
 - `F9` opens the **mod menu**. It doesn't turn anything on by itself: inside the menu, `Up`/`Down` selects, `Enter` turns a mod on or off, and `F9` closes the menu.
-- The last row, **Actions >**, opens the Actions page: category folders (Needs, Crime) plus settings shown right there (Body Type). It's never more than one folder deep. `Enter` uses a button or opens a folder, `Left`/`Right` change a scrolling setting, `Backspace` goes back a level.
+- The last row, **Actions >**, opens the Actions page: every button and setting in one list, grouped under category headings (NEEDS, CRIME), with uncategorized ones like Body Type on their own. No folders. `Enter` uses a button, `Left`/`Right` change a scrolling setting, `Backspace` goes back.
 - Every mod starts **off** until you turn it on in the menu. Turning one on shows `<Mod Name>: ON` with a one-line how-to.
 - A few seconds after scripts load, a subtitle says how many mods and actions loaded and how many mods are on. That's the smoke test that everything loaded.
 - `Insert` reloads scripts after a rebuild. Mods come back on or off the way you left them.
@@ -85,7 +85,7 @@ For a one-press button instead of an on/off mod, derive from `ModAction`. It sho
 
 For a scrolling setting, derive from `ModChoice`: fill in `Description`, `Choices` and `Apply(index)`, and optionally `Category` and `InitialChoice`.
 
-An action or setting whose `Category` is null shows directly on the Actions page instead of in a folder; the order of rows there is set by `ActionsOrder` in `ModMenu.cs`. `Left`/`Right` move through the choices and apply each one straight away.
+Actions and settings with a `Category` are grouped under that heading on the Actions page; ones whose `Category` is null sit on their own. The order of groups is set by `ActionsOrder` in `ModMenu.cs`. `Left`/`Right` move through the choices and apply each one straight away.
 
 ## Loading and unloading mod DLLs (developer tool)
 
