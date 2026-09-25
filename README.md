@@ -1,6 +1,6 @@
 # RDR2 Mod Menu
 
-RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game menu to turn them on and off. Each mod is its own project and DLL. (The local folder and solution are still named `AIPlayground`.)
+RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game menu to turn them on and off. Each mod is its own project and DLL. (The project started as "AI Playground": the C# namespace, the log file and the saved-settings file still use that name.)
 
 ## In-game
 
@@ -56,7 +56,7 @@ Free for new mods: `F2`, `F3`, `F10`, `F11`. While riding, `Ctrl` (stop), `C` (t
 
 1. Create `Mods/<Name>/<Name>.csproj` containing just `<Project Sdk="Microsoft.NET.Sdk" />`.
 2. Add a class deriving from `ModScript` (an on/off mod), `ModAction` (a button) or `ModChoice` (a scrolling setting) in that folder.
-3. Add the project to `AIPlayground.slnx` under the `/Mods/` folder.
+3. Add the project to `RDR2-Mod-Menu.slnx` under the `/Mods/` folder.
 4. If it has its own hotkeys, pick free ones from the Keys table above and add them to it.
 
 ## The ModScript standard
