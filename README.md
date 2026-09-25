@@ -16,7 +16,7 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2. Each mod is its ow
 | Mod | How to use it once it's on |
 |---|---|
 | **DynamiteGun** | Every bullet explodes like dynamite where it lands (skips hits within 5 m of you). |
-| **FlyingHorse** | On a horse, `F7` takes off or lands. Ride as normal in the air (`W` walk, `Shift` faster, `A`/`D` steer); `Space` rises, `X` descends, otherwise it holds altitude. Rider and horse are invincible until touching down. |
+| **FlyingHorse** | On a horse, `F7` takes off or lands. Ride as normal in the air (`W` walk, `Shift` faster, `A`/`D` steer); `Space` rises, `Q` descends, otherwise it holds altitude. Rider and horse are invincible until touching down. |
 
 ## Keys
 

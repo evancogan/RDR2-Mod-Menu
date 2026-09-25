@@ -10,7 +10,7 @@ namespace AIPlayground
 {
     // While enabled, press F7 on a horse to take off or land. In the air the horse rides as normal
     // (W walk, Shift faster, A/D steer, with the game's own animations); this mod only controls height:
-    // Space rises, X descends, and otherwise the horse holds its altitude.
+    // Space rises, Q descends, and otherwise the horse holds its altitude.
     //
     // How height is controlled, and why (all found by testing in-game):
     // - The horse's own riding moves it horizontally. The mod never sets its heading or horizontal speed:
@@ -22,12 +22,12 @@ namespace AIPlayground
     //   and keeping IK let the falling state start mid-descent.
     public class FlyingHorse : ModScript
     {
-        protected override string Description => "On a horse, press F7 to take off or land. Ride as normal (W walk, Shift faster, A/D steer); Space rises, X descends.";
+        protected override string Description => "On a horse, press F7 to take off or land. Ride as normal (W walk, Shift faster, A/D steer); Space rises, Q descends.";
 
         private const Keys FlyKey = Keys.F7;
 
-        // Not Ctrl (the game's horse-stop control) or C (turns the camera around).
-        private const Keys DescendKey = Keys.X;
+        // Not Ctrl (the game's horse-stop control), C (turns the camera around), or X (used by the game elsewhere).
+        private const Keys DescendKey = Keys.Q;
 
         private const float RiseSpeed = 8f;
 
@@ -52,7 +52,7 @@ namespace AIPlayground
 
         private enum FlightState { Grounded, Flying, Landing }
 
-        // Space and X are read straight from the keyboard: mounted, the game didn't report Space
+        // Space and Q are read straight from the keyboard: mounted, the game didn't report Space
         // through the horse-jump control.
         private readonly HashSet<Keys> heldKeys = new HashSet<Keys>();
 
