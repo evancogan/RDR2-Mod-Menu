@@ -1,4 +1,4 @@
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Needs section buttons for refilling needs. Each logs the needs before and after, to confirm it took effect.
 

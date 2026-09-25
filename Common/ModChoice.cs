@@ -2,7 +2,7 @@ using System;
 using RDR2;
 using Screen = RDR2.UI.Screen;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Base class for a scrolling row in the mod menu, listed in its Category's section, e.g. "Body Type   < Medium >".
     // Left/Right move through Choices and apply the new one straight away.

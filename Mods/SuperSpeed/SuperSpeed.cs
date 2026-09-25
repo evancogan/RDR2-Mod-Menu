@@ -3,7 +3,7 @@ using RDR2;
 using RDR2.Math;
 using RDR2.Native;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Arthur moves SpeedMultiplier times faster on foot, and can run across water (he sinks when he stops).
     // Walk, run and sprint as normal.

@@ -1,6 +1,6 @@
 # RDR2 Mod Menu
 
-RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game menu to turn them on and off. Each mod is its own project and DLL. (The project started as "AI Playground": the C# namespace, the log file and the saved-settings file still use that name.)
+RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game menu to turn them on and off. Each mod is its own project and DLL. (The project started as "AI Playground"; everything now uses the RDR2 Mod Menu name. Old `AIPlayground.ini` settings are picked up automatically.)
 
 ## In-game
 
@@ -10,7 +10,7 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game me
 - A few seconds after scripts load, a subtitle says how many mods and actions loaded and how many mods are on. That's the smoke test that everything loaded.
 - `Insert` reloads scripts after a rebuild. Mods come back on or off the way you left them.
 - `F8` opens the .NET console.
-- Debug output from every mod goes to `AIPlayground.log` next to `RDR2.exe`.
+- Debug output from every mod goes to `RDR2ModMenu.log` next to `RDR2.exe`.
 
 ## Menu sections
 
@@ -73,7 +73,7 @@ Every mod derives from `ModScript`, which registers it with the mod menu, turns 
 
 A mod's own hotkeys should only do something while `IsEnabled`. A mod can call `Disable("reason")` to switch itself off.
 
-On/off states are saved to `AIPlayground.ini` next to `RDR2.exe` (`ModName=on|off`, one per line). You can edit it by hand; delete a line to reset that mod to off.
+On/off states are saved to `RDR2ModMenu.ini` next to `RDR2.exe` (`ModName=on|off`, one per line). You can edit it by hand; delete a line to reset that mod to off.
 
 ### Buttons and settings
 

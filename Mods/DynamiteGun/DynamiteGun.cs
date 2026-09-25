@@ -2,7 +2,7 @@ using RDR2;
 using RDR2.Math;
 using Screen = RDR2.UI.Screen;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Every bullet the player fires explodes like dynamite where it lands.
     public class DynamiteGun : ModScript

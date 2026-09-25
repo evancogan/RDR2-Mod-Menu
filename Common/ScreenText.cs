@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using RDR2.Native;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Draws text with the same game natives as V2's Drawing.DrawText, but from string buffers we own.
     // V2 hands strings to the game in temporary buffers that are freed right after the call, while the game

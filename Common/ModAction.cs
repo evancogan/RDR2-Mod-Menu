@@ -2,7 +2,7 @@ using System;
 using RDR2;
 using Screen = RDR2.UI.Screen;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Base class for a one-press button in the mod menu, listed in its Category's section.
     // Selecting it and pressing Enter runs Run() once, then shows its result as a subtitle and logs it.

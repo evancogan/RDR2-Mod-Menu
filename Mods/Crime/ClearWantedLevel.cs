@@ -1,7 +1,7 @@
 using RDR2;
 using RDR2.Native;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Crime section button: ends the law's current pursuit of Arthur. His bounty is left as is.
     //

@@ -3,7 +3,7 @@ using System.Linq;
 using RDR2;
 using RDR2.Native;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Weapons button: fills Arthur's ammunition and reloads the gun in his hand.
     // Standard ammo for every gun type is always filled. Special ammo (express, split point, explosive and so on) is

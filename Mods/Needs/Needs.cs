@@ -1,7 +1,7 @@
 using RDR2;
 using RDR2.Native;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Refilling Arthur's needs, shared by the refill actions and Keep Needs Filled.
     // Each need has a bar (what drains in the moment) and a core behind it (the ring that drains over time).

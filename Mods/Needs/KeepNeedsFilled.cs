@@ -1,6 +1,6 @@
 using System;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Keeps Arthur's health, stamina and Dead Eye full, bars and cores, for as long as it's on.
     public class KeepNeedsFilled : ModScript

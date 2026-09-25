@@ -2,7 +2,7 @@ using RDR2;
 using RDR2.Math;
 using RDR2.Native;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Workarounds for ScriptHookRDR2 .NET V2 wrappers that read native results wrong.
     public static class Natives

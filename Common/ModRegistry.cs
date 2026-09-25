@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using RegistryEntry = System.Collections.Generic.Dictionary<string, object>;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // The list of loaded mods, actions and choices that the mod menu shows.
     //
@@ -13,7 +13,7 @@ namespace AIPlayground
     // types (strings, delegates, arrays), which every DLL sees as the same types.
     public static class ModRegistry
     {
-        private const string DataKey = "AIPlayground.ModRegistry";
+        private const string DataKey = "RDR2ModMenu.ModRegistry";
 
         internal const string NameKey = "Name";
         internal const string DescriptionKey = "Description";

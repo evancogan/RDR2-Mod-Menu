@@ -6,7 +6,7 @@ using RDR2;
 using RDR2.Native;
 using Screen = RDR2.UI.Screen;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // F9 opens the menu: a list of sections (Player, Needs, Weapons, Horse, Crime...). Enter opens one. A section lists
     // everything about that topic, whatever kind it is: on/off mods (Enter toggles), buttons (Enter uses) and scrolling

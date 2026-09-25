@@ -1,14 +1,14 @@
-﻿using System;
+using System;
 using RDR2;
 using Screen = RDR2.UI.Screen;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
-    // Base class for every AI Playground mod.
+    // Base class for every RDR2 Mod Menu mod.
     //
     // Mods are listed in their Category's section of the mod menu (F9) and turned on and off there. They start off
     // until you enable them, and remember
-    // their on/off state in AIPlayground.ini across Insert reloads and game restarts. Turning a mod on or off
+    // their on/off state in RDR2ModMenu.ini across Insert reloads and game restarts. Turning a mod on or off
     // shows "<Mod Name>: ON/OFF" as a subtitle and logs the change.
     //
     // Override OnEnable/OnDisable for setup and cleanup (OnEnable can return false to refuse),

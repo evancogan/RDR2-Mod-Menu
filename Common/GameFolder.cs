@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     public static class GameFolder
     {

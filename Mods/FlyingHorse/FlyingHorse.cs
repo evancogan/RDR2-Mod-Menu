@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using RDR2;
@@ -6,7 +6,7 @@ using RDR2.Math;
 using RDR2.Native;
 using Screen = RDR2.UI.Screen;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // While enabled, press F7 on a horse to take off or land. In the air the horse rides as normal
     // (W walk, Shift faster, A/D steer, with the game's own animations); this mod only controls height:

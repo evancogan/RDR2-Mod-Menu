@@ -1,7 +1,7 @@
 using RDR2;
 using RDR2.Native;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
     // Player section: one scrolling row, "Body Type  < Skinny | Medium | Fat >".
     //

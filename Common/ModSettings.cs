@@ -3,13 +3,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace AIPlayground
+namespace RDR2ModMenu
 {
-    // Remembers which mods are on, in AIPlayground.ini next to RDR2.exe, one "ModName=on|off" line per mod.
+    // Remembers which mods are on, in RDR2ModMenu.ini next to RDR2.exe, one "ModName=on|off" line per mod.
     // Shared by every mod DLL, so each one only rewrites its own line.
     public static class ModSettings
     {
-        private static readonly string FilePath = GameFolder.File("AIPlayground.ini");
+        private static readonly string FilePath = GameFolder.File("RDR2ModMenu.ini");
+
+        // The project's original name for the file. Until RDR2ModMenu.ini exists, settings are read from here, so
+        // saved on/off states carry over; the first change then writes them all to the new file.
+        private static readonly string OldFilePath = GameFolder.File("AIPlayground.ini");
+
+        private static string ReadPath => File.Exists(FilePath) || !File.Exists(OldFilePath) ? FilePath : OldFilePath;
 
         public static bool? GetEnabled(string mod)
         {
@@ -40,11 +46,12 @@ namespace AIPlayground
             var settings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                if (!File.Exists(FilePath))
+                string path = ReadPath;
+                if (!File.Exists(path))
                 {
                     return settings;
                 }
-                foreach (string line in File.ReadAllLines(FilePath))
+                foreach (string line in File.ReadAllLines(path))
                 {
                     int eq = line.IndexOf('=');
                     if (eq > 0)
