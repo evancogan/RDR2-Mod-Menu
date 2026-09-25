@@ -5,7 +5,7 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game me
 ## In-game
 
 - `F9` opens the **mod menu**. It doesn't turn anything on by itself: inside the menu, `Up`/`Down` selects, `Enter` turns a mod on or off, and `F9` closes the menu.
-- The last row, **Actions >**, opens a submenu of one-press buttons (like refilling needs). There, `Enter` uses one and `Backspace` goes back.
+- The last row, **Actions >**, opens a list of categories (Needs, Body Type, Crime). A category lists one-press buttons (`Enter` uses one) and scrolling settings (`Left`/`Right` change them). `Backspace` goes back a level.
 - Every mod starts **off** until you turn it on in the menu. Turning one on shows `<Mod Name>: ON` with a one-line how-to.
 - A few seconds after scripts load, a subtitle says how many mods and actions loaded and how many mods are on. That's the smoke test that everything loaded.
 - `Insert` reloads scripts after a rebuild. Mods come back on or off the way you left them.
@@ -23,14 +23,13 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game me
 
 ## Actions
 
-| Action | What it does |
-|---|---|
-| **Body Type: Fat / Medium / Skinny** | Reshapes Arthur's body. Medium resets to neutral. Uses the game's body-shape expressions; the game's own weight system may shift it again later. |
-| **Refill All Needs** | Fills health, stamina and Dead Eye, bars and cores, once. |
-| **Refill Ammo** | Fills ammo for every gun and bow, tops up special ammo you already carry, and reloads your gun. Skips throwables. |
-| **Refill Dead Eye** | Fills the Dead Eye bar and core. |
-| **Refill Health** | Fills the health bar and core. |
-| **Refill Stamina** | Fills the stamina bar and core. |
+| Category | Action | What it does |
+|---|---|---|
+| Needs | **Refill All Needs** | Fills health, stamina and Dead Eye, bars and cores, once. |
+| Needs | **Refill Ammo** | Fills ammo for every gun and bow, tops up special ammo you already carry, and reloads your gun. Skips throwables. |
+| Needs | **Refill Dead Eye / Health / Stamina** | Fills that one bar and its core. |
+| Body Type | **Body Type** `< Skinny / Medium / Fat >` | `Left`/`Right` change it. Uses the game's own body-weight outfits (the ones cutscenes switch between), so clothes refit. |
+| Crime | **Clear Wanted Level** | Ends the law's current pursuit. Your bounty stays as it is. |
 
 ## Keys
 
@@ -54,14 +53,14 @@ Free for new mods: `F2`, `F3`, `F10`, `F11`. While riding, `Ctrl` (stop), `C` (t
 
 - `Mods/<Name>/` — one folder per mod project. Builds to `<Name>.dll` and is copied into the game's `scripts\` folder. A project can hold several mods and actions (`Needs` holds Keep Needs Filled and the refill actions).
 - `Core/ModMenu/` — the F9 mod menu. Always loaded.
-- `Common/` — shared code compiled into every DLL, so each one stands alone: `ModScript` (the mod base class), `ModAction` (the action base class), `ModRegistry` (the list of loaded mods and actions the menu reads), `ModSettings` (saved on/off state), `ScreenText` (flicker-free menu text), `Log`, `Natives`.
+- `Common/` — shared code compiled into every DLL, so each one stands alone: `ModScript` (on/off mods), `ModAction` (buttons), `ModChoice` (scrolling settings), `ModRegistry` (the list the menu reads), `ModSettings` (saved on/off state), `ScreenText` (flicker-free menu text), `Log`, `Natives`.
 - `Directory.Build.props` — shared settings: game path (`RDR2Dir`), .NET Framework 4.8, x64, API reference.
 - `Directory.Build.targets` — copies each built DLL into the game folder.
 
 ## Adding a mod
 
 1. Create `Mods/<Name>/<Name>.csproj` containing just `<Project Sdk="Microsoft.NET.Sdk" />`.
-2. Add a class deriving from `ModScript` (an on/off mod) or `ModAction` (a button) in that folder.
+2. Add a class deriving from `ModScript` (an on/off mod), `ModAction` (a button) or `ModChoice` (a scrolling setting) in that folder.
 3. Add the project to `AIPlayground.slnx` under the `/Mods/` folder.
 4. If it has its own hotkeys, pick free ones from the Keys table above and add them to it.
 
@@ -82,7 +81,9 @@ On/off states are saved to `AIPlayground.ini` next to `RDR2.exe` (`ModName=on|of
 
 ### Actions
 
-For a one-press button instead of an on/off mod, derive from `ModAction`. It shows in the Actions submenu as `USE`; pressing `Enter` runs it once. Fill in `Description` and `Run()`, which does the work and returns the subtitle to show.
+For a one-press button instead of an on/off mod, derive from `ModAction`. It shows under its `Category` in the Actions submenu as `USE`; pressing `Enter` runs it once. Fill in `Category`, `Description` and `Run()`, which does the work and returns the subtitle to show.
+
+For a scrolling setting, derive from `ModChoice`: fill in `Category`, `Description`, `Choices` and `Apply(index)`, and optionally `InitialChoice`. `Left`/`Right` move through the choices and apply each one straight away.
 
 ## Loading and unloading mod DLLs (developer tool)
 

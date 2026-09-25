@@ -5,11 +5,13 @@ using RDR2.Native;
 
 namespace AIPlayground
 {
-    // Actions submenu button: fills Arthur's ammunition and reloads the gun in his hand.
+    // Actions > Needs button: fills Arthur's ammunition and reloads the gun in his hand.
     // Standard ammo for every gun type is always filled. Special ammo (express, split point, explosive and so on) is
     // only topped up if he already carries some, so it doesn't hand him ammo he never bought. Throwables are skipped.
     public class RefillAmmo : ModAction
     {
+        protected override string Category => "Needs";
+
         protected override string Description => "Fills ammo for every gun and bow, tops up special ammo you carry, and reloads your gun.";
 
         // More than any satchel holds; the game caps it at the maximum for each type.

@@ -5,6 +5,7 @@
   <Folder Name="/Mods/">
     <Project Path="Mods/Ammo/Ammo.csproj" />
     <Project Path="Mods/BodyType/BodyType.csproj" />
+    <Project Path="Mods/Crime/Crime.csproj" />
     <Project Path="Mods/DynamiteGun/DynamiteGun.csproj" />
     <Project Path="Mods/FlyingHorse/FlyingHorse.csproj" />
     <Project Path="Mods/Needs/Needs.csproj" />

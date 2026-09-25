@@ -1,91 +1,62 @@
-using System.Linq;
 using RDR2;
 using RDR2.Native;
 
 namespace AIPlayground
 {
-    // Actions submenu buttons that reshape Arthur's body: skinny, medium or fat.
+    // Actions > Body Type: one scrolling row, "Body Type  < Skinny | Medium | Fat >".
     //
-    // Uses the game's MetaPed expressions (_SET_CHAR_EXPRESSION, named _SET_PED_FACE_FEATURE in V2), which morph body
-    // parts by a value from -1.0 to 1.0, then refreshes his appearance. The expression IDs come from the community list
-    // linked in alloc8or's rdr3-nativedb. They're documented for the online character; they're expected to work on
-    // Arthur, and the game's own weight system (eating and so on) may shift his shape again later.
-    public static class BodyShape
+    // Uses the game's own body-weight system: equipping one of the body-weight outfits from pedattributes.ymt
+    // (eBodyWeightOutfit) with _EQUIP_META_PED_OUTFIT, then refreshing his components and variation. That's what
+    // refits his clothes to his new shape; the first version morphed the body directly (MetaPed expressions), which
+    // left clothes clipping until a cutscene. Those expressions are reset to neutral here in case they're still set.
+    // Hashes from the _EQUIP_META_PED_OUTFIT notes in alloc8or's rdr3-nativedb, listed smallest to biggest.
+    public class BodyType : ModChoice
     {
-        private const int Waist = 50460;
-        private const int HipsAndStomach = 49787;
-        private const int Chest = 27779;
-        private const int BackWidth = 41478;
-        private const int Arms = 46032;
-        private const int Forearms = 8420;
-        private const int ShoulderThickness = 7010;
-        private const int Thighs = 64834;
-        private const int Calves = 42067;
-        private const int Neck = 36277;
+        protected override string DisplayName => "Body Type";
 
-        private static readonly int[] Parts = { Waist, HipsAndStomach, Chest, BackWidth, Arms, Forearms, ShoulderThickness, Thighs, Calves, Neck };
+        protected override string Category => "Body Type";
 
-        // Each preset's value per part, in the same order as Parts.
-        public static readonly float[] Skinny = { -1f, -1f, -0.6f, -0.4f, -0.7f, -0.5f, -0.4f, -0.6f, -0.5f, -0.4f };
-        public static readonly float[] Medium = { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f };
-        public static readonly float[] Fat = { 1f, 1f, 0.6f, 0.5f, 0.6f, 0.4f, 0.4f, 0.7f, 0.5f, 0.7f };
+        protected override string Description => "Left/Right: skinny, medium or fat. Uses the game's own weight system, so his clothes refit.";
 
-        public static void Apply(float[] preset)
+        protected override string[] Choices => new[] { "Skinny", "Medium", "Fat" };
+
+        protected override int InitialChoice => 1;
+
+        // eBodyWeightOutfit, smallest to biggest: index 0 is the thinnest, 10 the default, 20 the heaviest.
+        private static readonly int[] WeightOutfits =
+        {
+            -2045421226, -1745814259, -325933489, -1065791927, -844699484, -1273449080, 927185840,
+            149872391, 399015098, -644349862, 1745919061, 1004225511, 1278600348, 502499352,
+            -2093198664, -1837436619, 1736416063, 2040610690, -1173634986, -867801909, 1960266524,
+        };
+
+        // Which weight outfit each choice uses.
+        private static readonly int[] ChoiceOutfit = { 0, 10, 20 };
+
+        // MetaPed body expressions the first version set (waist, hips/stomach, chest, back, arms, forearms,
+        // shoulders, thighs, calves, neck), reset to neutral so they don't stack on the weight outfit.
+        private static readonly int[] OldBodyExpressions = { 50460, 49787, 27779, 41478, 46032, 8420, 7010, 64834, 42067, 36277 };
+
+        private const ulong SET_ACTIVE_META_PED_COMPONENTS_UPDATED = 0xAAB86462966168CE;
+
+        protected override string Apply(int index)
         {
             Ped arthur = Game.Player.Character;
-            string before = Describe(arthur);
 
-            for (int i = 0; i < Parts.Length; i++)
+            foreach (int expression in OldBodyExpressions)
             {
-                PED._SET_PED_FACE_FEATURE(arthur.Handle, Parts[i], preset[i]);
+                PED._SET_PED_FACE_FEATURE(arthur.Handle, expression, 0f);
             }
+
+            int outfit = ChoiceOutfit[index];
+            PED._EQUIP_META_PED_OUTFIT(arthur.Handle, unchecked((uint)WeightOutfits[outfit]));
+
+            // Reload his components so clothes fit the new body, then redraw him.
+            Function.Call(SET_ACTIVE_META_PED_COMPONENTS_UPDATED, arthur.Handle, false);
             PED._UPDATE_PED_VARIATION(arthur.Handle, false, true, true, true, false);
 
-            Log.Write($"Body before: {before}. After: {Describe(arthur)}");
-        }
-
-        private static string Describe(Ped arthur)
-        {
-            return string.Join(", ", Parts.Select(part => $"{part}={PED._GET_PED_FACE_FEATURE(arthur.Handle, part):F2}"));
-        }
-    }
-
-    public class BodyTypeSkinny : ModAction
-    {
-        protected override string DisplayName => "Body Type: Skinny";
-
-        protected override string Description => "Makes Arthur skinny.";
-
-        protected override string Run()
-        {
-            BodyShape.Apply(BodyShape.Skinny);
-            return "Arthur is now skinny";
-        }
-    }
-
-    public class BodyTypeMedium : ModAction
-    {
-        protected override string DisplayName => "Body Type: Medium";
-
-        protected override string Description => "Returns Arthur's body to a neutral, medium build.";
-
-        protected override string Run()
-        {
-            BodyShape.Apply(BodyShape.Medium);
-            return "Arthur is now a medium build";
-        }
-    }
-
-    public class BodyTypeFat : ModAction
-    {
-        protected override string DisplayName => "Body Type: Fat";
-
-        protected override string Description => "Makes Arthur fat.";
-
-        protected override string Run()
-        {
-            BodyShape.Apply(BodyShape.Fat);
-            return "Arthur is now fat";
+            Log.Write($"Equipped body-weight outfit #{outfit + 1} of {WeightOutfits.Length}");
+            return $"Body type: {Choices[index]}";
         }
     }
 }

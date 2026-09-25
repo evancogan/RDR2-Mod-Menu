@@ -34,7 +34,7 @@ namespace AIPlayground
             bool? saved = ModSettings.GetEnabled(SettingsKey);
             startEnabled = saved ?? false;
 
-            registration = ModRegistry.Register(DisplayName, Description, () => IsEnabled, () => toggleRequested = true);
+            registration = ModRegistry.RegisterToggle(DisplayName, Description, () => IsEnabled, () => toggleRequested = true);
 
             Tick += OnTickInternal;
             Aborted += (sender, e) =>
