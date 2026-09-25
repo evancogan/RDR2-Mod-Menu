@@ -1,4 +1,3 @@
-using System.Windows.Forms;
 using RDR2;
 using RDR2.Math;
 using Screen = RDR2.UI.Screen;
@@ -8,9 +7,7 @@ namespace AIPlayground
     // Every bullet the player fires explodes like dynamite where it lands.
     public class DynamiteGun : ModScript
     {
-        protected override Keys ToggleKey => Keys.F10;
-
-        protected override bool EnabledOnStart => true;
+        protected override string Description => "Every bullet explodes like dynamite where it lands (not within 5 m of you).";
 
         // Don't blow up impacts this close to the player, so point-blank shots aren't suicide.
         private const float MinSafeDistance = 5.0f;

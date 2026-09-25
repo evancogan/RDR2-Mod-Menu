@@ -1,9 +1,10 @@
-# Turn AI Playground mods on and off by moving their DLLs between the game's scripts and scripts_disabled folders.
+# Developer tool: control whether the game loads a mod's DLL at all, by moving it between the game's
+# scripts and scripts_disabled folders. Turning loaded mods on and off is done in-game with the F6 menu.
 #
-#   .\mods.ps1                      list every mod and whether it's enabled
-#   .\mods.ps1 enable  <Mod>
-#   .\mods.ps1 disable <Mod>
-#   .\mods.ps1 only    <Mod>        enable this mod, disable all the others
+#   .\mods.ps1                      list every mod and whether its DLL is loaded
+#   .\mods.ps1 enable  <Mod>        load it
+#   .\mods.ps1 disable <Mod>        unload it
+#   .\mods.ps1 only    <Mod>        load this mod, unload all the others
 #
 # Only DLLs named after folders in Mods\ are touched. Press Insert in-game afterwards to reload scripts.
 param(
@@ -21,8 +22,8 @@ $disabledDir = Join-Path $rdr2Dir 'scripts_disabled'
 $mods = @(Get-ChildItem (Join-Path $PSScriptRoot 'Mods') -Directory | ForEach-Object Name)
 
 function Get-ModState($name) {
-    if (Test-Path (Join-Path $enabledDir "$name.dll")) { 'enabled' }
-    elseif (Test-Path (Join-Path $disabledDir "$name.dll")) { 'disabled' }
+    if (Test-Path (Join-Path $enabledDir "$name.dll")) { 'loaded' }
+    elseif (Test-Path (Join-Path $disabledDir "$name.dll")) { 'unloaded' }
     else { 'not built' }
 }
 

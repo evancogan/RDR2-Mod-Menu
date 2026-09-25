@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 
@@ -9,9 +8,7 @@ namespace AIPlayground
     // Every mod writes to the same file, tagged with its own name.
     public static class Log
     {
-        private static readonly string FilePath = Path.Combine(
-            Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
-            "AIPlayground.log");
+        private static readonly string FilePath = GameFolder.File("AIPlayground.log");
 
         private static readonly string ModName = Assembly.GetExecutingAssembly().GetName().Name;
 
