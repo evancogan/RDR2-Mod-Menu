@@ -11,12 +11,6 @@ namespace RDR2ModMenu
     {
         private static readonly string FilePath = GameFolder.File("RDR2ModMenu.ini");
 
-        // The project's original name for the file. Until RDR2ModMenu.ini exists, settings are read from here, so
-        // saved on/off states carry over; the first change then writes them all to the new file.
-        private static readonly string OldFilePath = GameFolder.File("AIPlayground.ini");
-
-        private static string ReadPath => File.Exists(FilePath) || !File.Exists(OldFilePath) ? FilePath : OldFilePath;
-
         public static bool? GetEnabled(string mod)
         {
             string value;
@@ -46,12 +40,11 @@ namespace RDR2ModMenu
             var settings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                string path = ReadPath;
-                if (!File.Exists(path))
+                if (!File.Exists(FilePath))
                 {
                     return settings;
                 }
-                foreach (string line in File.ReadAllLines(path))
+                foreach (string line in File.ReadAllLines(FilePath))
                 {
                     int eq = line.IndexOf('=');
                     if (eq > 0)

@@ -1,6 +1,6 @@
 # RDR2 Mod Menu
 
-RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game menu to turn them on and off. Each mod is its own project and DLL. (The project started as "AI Playground"; everything now uses the RDR2 Mod Menu name. Old `AIPlayground.ini` settings are picked up automatically.)
+RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game menu to turn them on and off. Each mod is its own project and DLL.
 
 ## Setup
 
