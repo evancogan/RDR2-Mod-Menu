@@ -4,13 +4,13 @@ using System.Linq;
 using System.Windows.Forms;
 using RDR2;
 using RDR2.Native;
-using RDR2.UI;
 using Screen = RDR2.UI.Screen;
 
 namespace AIPlayground
 {
-    // F9 opens a menu listing every loaded AI Playground mod and action. Up/Down selects, Enter toggles a mod or
-    // uses an action, F9 or Backspace closes. A few seconds after loading it also announces what loaded, as a smoke test.
+    // F9 opens a menu listing every loaded mod. Up/Down selects, Enter toggles a mod, F9 closes.
+    // One-shot actions live in an Actions submenu, opened from the last row: Enter uses one, Backspace goes back.
+    // A few seconds after loading it also announces what loaded, as a smoke test.
     public class ModMenu : Script
     {
         private const Keys MenuKey = Keys.F9;
@@ -28,9 +28,17 @@ namespace AIPlayground
         private const float TextScale = 0.4f;
         private const float SmallTextScale = 0.3f;
 
+        private const string ActionsRowName = "Actions";
+        private const string ActionsRowDescription = "One-press buttons, like refilling needs.";
+
+        private enum Page { Mods, Actions }
+
         private bool open;
-        private int selected;
-        private List<ModInfo> mods = new List<ModInfo>();
+        private Page page = Page.Mods;
+        private int selectedMod;
+        private int selectedAction;
+        private List<ModInfo> toggles = new List<ModInfo>();
+        private List<ModInfo> actions = new List<ModInfo>();
         private readonly int announceAt;
         private bool announced;
 
@@ -43,11 +51,17 @@ namespace AIPlayground
             Log.Write("Mod menu loaded, F9 to open");
         }
 
+        // The mods page has one extra row at the bottom that opens the Actions page, when there are any actions.
+        private int ModsPageRows => toggles.Count + (actions.Count > 0 ? 1 : 0);
+
+        private bool ActionsRowSelected => page == Page.Mods && actions.Count > 0 && selectedMod == toggles.Count;
+
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == MenuKey)
             {
                 open = !open;
+                page = Page.Mods;
                 return;
             }
 
@@ -56,23 +70,63 @@ namespace AIPlayground
                 return;
             }
 
+            int rows = page == Page.Mods ? ModsPageRows : actions.Count;
             switch (e.KeyCode)
             {
                 case Keys.Up:
-                    selected = mods.Count == 0 ? 0 : (selected - 1 + mods.Count) % mods.Count;
+                    Move(rows, -1);
                     break;
                 case Keys.Down:
-                    selected = mods.Count == 0 ? 0 : (selected + 1) % mods.Count;
+                    Move(rows, 1);
                     break;
                 case Keys.Enter:
-                    if (selected < mods.Count)
-                    {
-                        mods[selected].Activate();
-                    }
+                    Select();
                     break;
                 case Keys.Back:
-                    open = false;
+                    if (page == Page.Actions)
+                    {
+                        page = Page.Mods;
+                    }
+                    else
+                    {
+                        open = false;
+                    }
                     break;
+            }
+        }
+
+        private void Move(int rows, int step)
+        {
+            if (rows == 0)
+            {
+                return;
+            }
+            if (page == Page.Mods)
+            {
+                selectedMod = (selectedMod + step + rows) % rows;
+            }
+            else
+            {
+                selectedAction = (selectedAction + step + rows) % rows;
+            }
+        }
+
+        private void Select()
+        {
+            if (page == Page.Actions)
+            {
+                if (selectedAction < actions.Count)
+                {
+                    actions[selectedAction].Activate();
+                }
+            }
+            else if (ActionsRowSelected)
+            {
+                page = Page.Actions;
+            }
+            else if (selectedMod < toggles.Count)
+            {
+                toggles[selectedMod].Activate();
             }
         }
 
@@ -82,10 +136,8 @@ namespace AIPlayground
             {
                 announced = true;
                 List<ModInfo> all = ModRegistry.GetAll();
-                int toggles = all.Count(m => !m.IsAction);
                 int on = all.Count(m => m.IsEnabled);
-                int actions = all.Count(m => m.IsAction);
-                Screen.DisplaySubtitle($"AI Playground: {toggles} mods loaded ({on} on), {actions} actions. F9 for menu.");
+                Screen.DisplaySubtitle($"RDR2 Mod Menu: {all.Count(m => !m.IsAction)} mods loaded ({on} on), {all.Count(m => m.IsAction)} actions. F9 for menu.");
                 Log.Write($"Loaded: {string.Join(", ", all.Select(m => $"{m.Name} ({(m.IsAction ? "action" : m.IsEnabled ? "on" : "off")})"))}");
             }
 
@@ -94,52 +146,44 @@ namespace AIPlayground
                 return;
             }
 
-            mods = ModRegistry.GetAll();
-            if (selected >= mods.Count)
+            List<ModInfo> all2 = ModRegistry.GetAll();
+            toggles = all2.Where(m => !m.IsAction).ToList();
+            actions = all2.Where(m => m.IsAction).ToList();
+            selectedMod = Math.Min(selectedMod, Math.Max(0, ModsPageRows - 1));
+            selectedAction = Math.Min(selectedAction, Math.Max(0, actions.Count - 1));
+            if (page == Page.Actions && actions.Count == 0)
             {
-                selected = Math.Max(0, mods.Count - 1);
+                page = Page.Mods;
             }
 
             // The menu is modal: keep arrow keys, Enter and Backspace from also acting in the game.
             Game.DisableAllControlsThisFrame();
-            Draw();
+            if (page == Page.Mods)
+            {
+                DrawModsPage();
+            }
+            else
+            {
+                DrawActionsPage();
+            }
         }
 
-        private void Draw()
+        private void DrawModsPage()
         {
-            float y = Top;
+            float y = DrawTitle("RDR2 Mod Menu");
 
-            DrawRow(y, 150, 20, 20, 230);
-            DrawText("AI Playground Mods", Left + TextInset, y, TextScale, 255, 255, 255);
-            y += RowHeight;
-
-            if (mods.Count == 0)
+            if (ModsPageRows == 0)
             {
                 DrawRow(y, 0, 0, 0, 190);
                 DrawText("No mods loaded", Left + TextInset, y, TextScale, 180, 180, 180);
                 y += RowHeight;
             }
 
-            for (int i = 0; i < mods.Count; i++)
+            for (int i = 0; i < toggles.Count; i++)
             {
-                ModInfo mod = mods[i];
-                bool isSelected = i == selected;
-
-                if (isSelected)
-                {
-                    DrawRow(y, 90, 90, 90, 220);
-                }
-                else
-                {
-                    DrawRow(y, 0, 0, 0, 190);
-                }
-
-                DrawText(mod.Name, Left + TextInset, y, TextScale, 255, 255, 255);
-                if (mod.IsAction)
-                {
-                    DrawText("USE", Left + Width - 0.04f, y, TextScale, 230, 190, 90);
-                }
-                else if (mod.IsEnabled)
+                ModInfo mod = toggles[i];
+                DrawItemRow(y, i == selectedMod, mod.Name);
+                if (mod.IsEnabled)
                 {
                     DrawText("ON", Left + Width - 0.04f, y, TextScale, 90, 220, 90);
                 }
@@ -150,18 +194,73 @@ namespace AIPlayground
                 y += RowHeight;
             }
 
-            if (selected < mods.Count)
+            if (actions.Count > 0)
             {
-                foreach (string line in ScreenText.Wrap(mods[selected].Description, Width - 2 * TextInset, SmallTextScale))
-                {
-                    DrawRow(y, 0, 0, 0, 190, SmallRowHeight);
-                    DrawText(line, Left + TextInset, y, SmallTextScale, 220, 220, 220);
-                    y += SmallRowHeight;
-                }
+                DrawItemRow(y, ActionsRowSelected, ActionsRowName);
+                DrawText(">", Left + Width - 0.025f, y, TextScale, 230, 190, 90);
+                y += RowHeight;
             }
 
+            string description = ActionsRowSelected ? ActionsRowDescription
+                : selectedMod < toggles.Count ? toggles[selectedMod].Description : null;
+            y = DrawDescription(y, description);
+            DrawFooter(y, "Up/Down select    Enter toggle/open    F9 close");
+        }
+
+        private void DrawActionsPage()
+        {
+            float y = DrawTitle("RDR2 Mod Menu  >  Actions");
+
+            for (int i = 0; i < actions.Count; i++)
+            {
+                DrawItemRow(y, i == selectedAction, actions[i].Name);
+                DrawText("USE", Left + Width - 0.04f, y, TextScale, 230, 190, 90);
+                y += RowHeight;
+            }
+
+            y = DrawDescription(y, selectedAction < actions.Count ? actions[selectedAction].Description : null);
+            DrawFooter(y, "Up/Down select    Enter use    Backspace back    F9 close");
+        }
+
+        private float DrawTitle(string title)
+        {
+            DrawRow(Top, 150, 20, 20, 230);
+            DrawText(title, Left + TextInset, Top, TextScale, 255, 255, 255);
+            return Top + RowHeight;
+        }
+
+        private static void DrawItemRow(float y, bool selected, string name)
+        {
+            if (selected)
+            {
+                DrawRow(y, 90, 90, 90, 220);
+            }
+            else
+            {
+                DrawRow(y, 0, 0, 0, 190);
+            }
+            DrawText(name, Left + TextInset, y, TextScale, 255, 255, 255);
+        }
+
+        private static float DrawDescription(float y, string description)
+        {
+            if (description == null)
+            {
+                return y;
+            }
+            foreach (string line in ScreenText.Wrap(description, Width - 2 * TextInset, SmallTextScale))
+            {
+                DrawRow(y, 0, 0, 0, 190, SmallRowHeight);
+                DrawText(line, Left + TextInset, y, SmallTextScale, 220, 220, 220);
+                y += SmallRowHeight;
+            }
+            return y;
+        }
+
+        private static void DrawFooter(float y, string text)
+        {
             DrawRow(y, 0, 0, 0, 190, SmallRowHeight + 0.006f);
-            DrawText("Up/Down select    Enter toggle/use    F9 close", Left + TextInset, y + 0.004f, SmallTextScale, 180, 180, 180);
+            DrawText(text, Left + TextInset, y + 0.004f, SmallTextScale, 180, 180, 180);
         }
 
         private static void DrawRow(float top, int r, int g, int b, int a, float height = RowHeight)

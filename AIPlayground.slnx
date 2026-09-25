@@ -1,11 +1,11 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/Core/">
     <Project Path="Core/ModMenu/ModMenu.csproj" />
   </Folder>
   <Folder Name="/Mods/">
     <Project Path="Mods/DynamiteGun/DynamiteGun.csproj" />
     <Project Path="Mods/FlyingHorse/FlyingHorse.csproj" />
-    <Project Path="Mods/RefillNeeds/RefillNeeds.csproj" />
+    <Project Path="Mods/Needs/Needs.csproj" />
     <Project Path="Mods/SuperSpeed/SuperSpeed.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
