@@ -25,7 +25,9 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game me
 
 | Action | What it does |
 |---|---|
+| **Body Type: Fat / Medium / Skinny** | Reshapes Arthur's body. Medium resets to neutral. Uses the game's body-shape expressions; the game's own weight system may shift it again later. |
 | **Refill All Needs** | Fills health, stamina and Dead Eye, bars and cores, once. |
+| **Refill Ammo** | Fills ammo for every gun and bow, tops up special ammo you already carry, and reloads your gun. Skips throwables. |
 | **Refill Dead Eye** | Fills the Dead Eye bar and core. |
 | **Refill Health** | Fills the health bar and core. |
 | **Refill Stamina** | Fills the stamina bar and core. |

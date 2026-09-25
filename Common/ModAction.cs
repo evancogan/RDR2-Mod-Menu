@@ -12,7 +12,8 @@ namespace AIPlayground
         // One line shown in the mod menu.
         protected abstract string Description { get; }
 
-        protected string DisplayName => ModRegistry.DisplayNameOf(GetType());
+        // Defaults to the class name split into words; override for a custom name (the menu sorts actions by it).
+        protected virtual string DisplayName => ModRegistry.DisplayNameOf(GetType());
 
         private readonly object registration;
         private volatile bool runRequested;
