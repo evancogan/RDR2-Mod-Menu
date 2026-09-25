@@ -52,14 +52,20 @@ namespace RDR2ModMenu
             });
         }
 
-        // A row that scrolls through choices with Left/Right, listed in its menu section.
-        public static object RegisterChoice(string name, string description, string category, string[] choices, Func<int> current, Action<int> choose)
+        // A row that scrolls through choices with Left/Right, listed in its menu section. If use isn't null,
+        // Enter calls it (e.g. "refill now"); otherwise Enter moves to the next choice.
+        public static object RegisterChoice(string name, string description, string category, string[] choices, Func<int> current, Action<int> choose, Action use = null)
         {
-            return Register(new RegistryEntry
+            var entry = new RegistryEntry
             {
                 [NameKey] = name, [DescriptionKey] = description, [KindKey] = ChoiceKind, [CategoryKey] = category,
                 [ChoicesKey] = choices, [CurrentChoiceKey] = current, [ChooseKey] = choose,
-            });
+            };
+            if (use != null)
+            {
+                entry[ActivateKey] = use;
+            }
+            return Register(entry);
         }
 
         // Pass the token Register returned, when the mod unloads.
@@ -129,7 +135,10 @@ namespace RDR2ModMenu
 
         public int CurrentChoice => IsChoice ? ((Func<int>)entry[ModRegistry.CurrentChoiceKey])() : 0;
 
-        // Toggles a mod or runs an action. The mod acts on its next frame, on its own script thread.
+        // Whether Enter does something of its own on a choice row (instead of moving to the next choice).
+        public bool CanUse => entry.ContainsKey(ModRegistry.ActivateKey);
+
+        // Toggles a mod, runs an action, or uses a choice row. The mod acts on its next frame, on its own script thread.
         public void Activate()
         {
             if (entry.TryGetValue(ModRegistry.ActivateKey, out object activate))

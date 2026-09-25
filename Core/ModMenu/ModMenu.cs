@@ -149,13 +149,13 @@ namespace RDR2ModMenu
             {
                 return;
             }
-            if (item.IsChoice)
+            if (item.IsChoice && !item.CanUse)
             {
                 item.Step(1);
             }
             else
             {
-                // Toggles a mod or uses a button.
+                // Toggles a mod, uses a button, or uses a choice row that has an Enter action (like "refill now").
                 item.Activate();
             }
         }
@@ -258,8 +258,14 @@ namespace RDR2ModMenu
 
             ModInfo item = SelectedItem;
             y = DrawDescription(y, item?.Description);
-            string enter = item == null ? "" : item.IsChoice ? "Left/Right change" : item.IsToggle ? "Enter toggle" : "Enter use";
-            DrawFooter(y, $"Up/Down select    {enter}    Backspace back    F9 close");
+            // Kept short enough to fit on one line of the panel.
+            string footer =
+                item == null ? "Backspace back    F9 close" :
+                item.IsChoice && item.CanUse ? "Left/Right change   Enter use   Backspace back   F9 close" :
+                item.IsChoice ? "Up/Down select    Left/Right change    Backspace back    F9 close" :
+                item.IsToggle ? "Up/Down select    Enter toggle    Backspace back    F9 close" :
+                "Up/Down select    Enter use    Backspace back    F9 close";
+            DrawFooter(y, footer);
         }
 
         // ON/OFF for a mod, USE for a button, "<  Medium  >" for a scrolling setting.

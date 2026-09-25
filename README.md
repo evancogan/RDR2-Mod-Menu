@@ -43,15 +43,13 @@ A few other things worth knowing:
 | Player | **Super Speed** | mod | Arthur moves five times faster on foot. Walk, run and sprint like normal. He sticks to the ground, jumps about 10 m high without losing speed (and can't get hurt until he lands), runs across water and sinks when he stops, and swims like a jetski at around 15 m/s, or 25 m/s if you sprint. He won't ragdoll while it's on. |
 | Player | **Body Type** `< Skinny / Medium / Fat >` | setting | Switches between the game's own body-weight outfits, the same ones cutscenes use, so his clothes refit properly. |
 | Player | **Give $1000** | button | Adds $1000 to Arthur's cash. |
-| Player | **Check Honor (test)** | button | Temporary. Shows the honor value the mod can see, so we can confirm it before building an honor changer. Changes nothing. |
-| Needs | **Keep Needs Filled** | mod | Keeps health, stamina and Dead Eye topped up, both the bars and the cores. |
-| Needs | **Refill All Needs** | button | Fills health, stamina and Dead Eye, bars and cores, once. |
-| Needs | **Refill Dead Eye / Health / Stamina** | button | Fills just that one bar and its core. |
+| Needs | **God Mode** | mod | Arthur can't be hurt or knocked down, and his health, stamina and Dead Eye stay full. |
+| Needs | **Refill Dead Eye / Health / Stamina** `< Once / Always >` | setting | On Once, press `Enter` to fill that bar and its core right now. On Always, it stays full. Each row remembers its setting. |
 | Weapons | **Dynamite Gun** | mod | Every bullet explodes like dynamite where it lands. Hits closer than 5 m to you are skipped so you don't blow yourself up. |
 | Weapons | **Clean Weapons** | button | Cleans every weapon Arthur is carrying: wear, dirt, soot and damage. Weapons stowed on the horse aren't included, and there's no way to remove rust yet. |
 | Weapons | **Refill Ammo** | button | Fills ammo for every gun and bow, tops up any special ammo you're already carrying, and reloads the gun in your hand. Throwables are left alone. |
 | Horse | **Flying Horse** | mod | On a horse, press `F7` to take off or land. In the air you ride like normal (`W` to walk, `Shift` to go faster, `A` and `D` to steer). `Space` climbs, `Q` descends, and if you do neither the horse holds its height. You and the horse can't get hurt until you're back on the ground. |
-| Crime | **Never Wanted** | mod | The law never comes after you while it's on. Bounties aren't touched. |
+| Crime | **Never Wanted** | mod | The law never comes after you while it's on: witnesses don't report you and lawmen aren't sent. Bounties aren't touched. |
 | Crime | **Clear Bounty** | button | Wipes your bounty and the law's record of your past crimes. |
 | Crime | **Clear Wanted Level** | button | Ends the law's current chase. Your bounty doesn't change. |
 
@@ -108,7 +106,11 @@ Which mods are on gets saved to `RDR2ModMenu.ini` next to `RDR2.exe`, one `ModNa
 
 For a button, derive from `ModAction`. It shows up as USE, and pressing `Enter` runs it once. Fill in `Category`, `Description` and `Run()`. `Run()` does the work and returns the subtitle to show afterwards.
 
-For a setting, derive from `ModChoice`. Fill in `Category`, `Description`, `Choices` and `Apply(index)`, and `InitialChoice` if you want it to start somewhere other than the first option. `Left` and `Right` step through the choices and apply each one straight away.
+For a setting, derive from `ModChoice`. Fill in `Category`, `Description`, `Choices` and `Apply(index)`, and `InitialChoice` if you want it to start somewhere other than the first option. `Left` and `Right` step through the choices and apply each one straight away. A few optional extras:
+
+- Set `RememberChoice` to true to save the choice in `RDR2ModMenu.ini` and restore it on load.
+- Set `CanUse` to true and fill in `Use()` to make `Enter` do something, like the refill rows' "refill now".
+- Fill in `OnChoiceTick()` for anything that has to run every frame depending on the choice, like "Always" keeping a bar full.
 
 ### Sections
 
@@ -131,5 +133,7 @@ It just moves DLLs between the game's `scripts\` and `scripts_disabled\` folders
 
 - V2's `Ped.GetLastWeaponImpactCoords` gives back scrambled coordinates, because the game pads each number to 8 bytes and V2 doesn't expect that. Use `Natives.TryGetLastWeaponImpact` instead, and watch for the same problem anywhere else V2 hands back a `Vector3` through a pointer.
 - The game's "is in the air" check (`IsInAir`) can't be trusted for horses. It said false for most of a flight.
+- Honor has no native. The story scripts keep it in a script global whose address changes between game versions, and the published address (`Global_40 + 11095 + 35`) read a fixed -240 on version 1.0.1491.50 that didn't change after a crime. Writing to a wrong global can crash the game or corrupt a save, so there's no honor mod for now.
+- To stop the law, clearing the wanted level isn't enough: the law keeps noticing crimes and flips between chasing you and giving up. Stopping witnesses from reporting (`SUPPRESS_WITNESSES_CALLING_POLICE_THIS_FRAME`) and disabling dispatch (`_SET_LAW_DISABLED`) stops it at the source.
 - To find water, `TEST_VERTICAL_PROBE_AGAINST_ALL_WATER` works on rivers. `GET_WATER_HEIGHT` and `GET_WATER_HEIGHT_NO_WAVES` didn't find anything.
 - When Arthur or a horse is on the ground, the game ignores any speed you set, because the animation is what moves them. Moving them by position with "keep tasks" works instead. The comments in `FlyingHorse.cs` and `SuperSpeed.cs` go into more detail.

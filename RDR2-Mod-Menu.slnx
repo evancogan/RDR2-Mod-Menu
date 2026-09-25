@@ -7,7 +7,6 @@
     <Project Path="Mods/Crime/Crime.csproj" />
     <Project Path="Mods/DynamiteGun/DynamiteGun.csproj" />
     <Project Path="Mods/FlyingHorse/FlyingHorse.csproj" />
-    <Project Path="Mods/Honor/Honor.csproj" />
     <Project Path="Mods/Money/Money.csproj" />
     <Project Path="Mods/Needs/Needs.csproj" />
     <Project Path="Mods/SuperSpeed/SuperSpeed.csproj" />

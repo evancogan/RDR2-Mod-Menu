@@ -5,7 +5,8 @@ using System.Linq;
 
 namespace RDR2ModMenu
 {
-    // Remembers which mods are on, in RDR2ModMenu.ini next to RDR2.exe, one "ModName=on|off" line per mod.
+    // Remembers mod states in RDR2ModMenu.ini next to RDR2.exe, one "Name=value" line each: "on"/"off" for mods,
+    // or the chosen option for settings that remember their choice (e.g. "RefillHealth=Always").
     // Shared by every mod DLL, so each one only rewrites its own line.
     public static class ModSettings
     {
@@ -13,20 +14,25 @@ namespace RDR2ModMenu
 
         public static bool? GetEnabled(string mod)
         {
-            string value;
-            if (!ReadAll().TryGetValue(mod, out value))
-            {
-                return null;
-            }
-            return string.Equals(value, "on", StringComparison.OrdinalIgnoreCase);
+            string value = GetValue(mod);
+            return value == null ? (bool?)null : string.Equals(value, "on", StringComparison.OrdinalIgnoreCase);
         }
 
-        public static void SetEnabled(string mod, bool enabled)
+        public static void SetEnabled(string mod, bool enabled) => SetValue(mod, enabled ? "on" : "off");
+
+        // The saved value for name, or null if there isn't one.
+        public static string GetValue(string name)
+        {
+            string value;
+            return ReadAll().TryGetValue(name, out value) ? value : null;
+        }
+
+        public static void SetValue(string name, string value)
         {
             try
             {
                 Dictionary<string, string> settings = ReadAll();
-                settings[mod] = enabled ? "on" : "off";
+                settings[name] = value;
                 File.WriteAllLines(FilePath, settings.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}={kv.Value}"));
             }
             catch (IOException ex)
