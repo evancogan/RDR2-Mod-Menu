@@ -2,6 +2,20 @@
 
 RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game menu to turn them on and off. Each mod is its own project and DLL. (The project started as "AI Playground"; everything now uses the RDR2 Mod Menu name. Old `AIPlayground.ini` settings are picked up automatically.)
 
+## Setup
+
+1. Install [ScriptHookRDR2](https://www.dev-c.com/rdr2/scripthookrdr2/) and ScriptHookRDR2 .NET V2 into the RDR2 folder.
+2. Have Visual Studio 2022 or later (or the .NET SDK) installed.
+3. Clone and build `RDR2-Mod-Menu.slnx`. Each mod's DLL is copied into the game's `scripts\` folder automatically.
+
+The build finds the RDR2 folder by itself, from the registry entry the game writes (Rockstar launcher, Steam or Epic) or the standard install folders, so there's nothing to configure. If it can't, or you want a different copy of the game, create `Directory.Build.local.props` next to `Directory.Build.props` (it's git-ignored):
+
+```xml
+<Project><PropertyGroup><RDR2Dir>E:\Games\Red Dead Redemption 2</RDR2Dir></PropertyGroup></Project>
+```
+
+An `RDR2Dir` environment variable works too. If RDR2 or ScriptHookRDR2 .NET can't be found, the build stops with a message saying which.
+
 ## In-game
 
 - `F9` opens the **mod menu**: a list of sections (Player, Needs, Weapons, Horse, Crime), each showing how many of its mods are on. `Up`/`Down` selects, `Enter` opens a section, `F9` closes.
@@ -49,9 +63,8 @@ Free for new mods: `F2`, `F3`, `F10`, `F11`. While riding, `Ctrl` (stop), `C` (t
 - `Mods/<Name>/` — one folder per mod project. Builds to `<Name>.dll` and is copied into the game's `scripts\` folder. A project can hold several mods and actions (`Needs` holds Keep Needs Filled and the refill actions).
 - `Core/ModMenu/` — the F9 mod menu. Always loaded.
 - `Common/` — shared code compiled into every DLL, so each one stands alone: `ModScript` (on/off mods), `ModAction` (buttons), `ModChoice` (scrolling settings), `ModRegistry` (the list the menu reads), `ModSettings` (saved on/off state), `ScreenText` (flicker-free menu text), `Log`, `Natives`.
-- `Directory.Build.props` — shared settings: game path (`RDR2Dir`), .NET Framework 4.8, x64, API reference.
-- `Directory.Build.targets` — copies each built DLL into the game folder.
-
+- `Directory.Build.props` — shared settings: finding the game folder (`RDR2Dir`), .NET Framework 4.8, x64, API reference.
+- `Directory.Build.targets` — stops the build with a clear message if RDR2 or ScriptHookRDR2 .NET is missing, and copies each built DLL into the game folder.
 ## Adding a mod
 
 1. Create `Mods/<Name>/<Name>.csproj` containing just `<Project Sdk="Microsoft.NET.Sdk" />`.

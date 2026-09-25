@@ -1,7 +1,42 @@
 <Project>
   <!-- Shared settings for every mod under Mods\. Each mod builds to its own DLL in the game's scripts folder. -->
+
+  <!--
+    Where RDR2 is installed (RDR2Dir) is found automatically; nothing needs setting up on a new machine. First match wins:
+      1. Directory.Build.local.props next to this file (untracked, optional), for unusual setups:
+           <Project><PropertyGroup><RDR2Dir>E:\Games\Red Dead Redemption 2</RDR2Dir></PropertyGroup></Project>
+      2. An RDR2Dir environment variable.
+      3. Rockstar's registry entry, which the game writes for Rockstar launcher, Steam and Epic installs alike.
+         Its value may end in an extra segment, so both it and its parent folder are checked for RDR2.exe.
+      4. The standard install folders.
+    If none is found, the build stops with a message saying how to fix it (see CheckRDR2Dir in Directory.Build.targets).
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props" Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
+
   <PropertyGroup>
-    <RDR2Dir>D:\SteamLibrary\steamapps\common\Red Dead Redemption 2</RDR2Dir>
+    <_RdrRegistryKey>HKEY_LOCAL_MACHINE\SOFTWARE\Rockstar Games\Red Dead Redemption 2</_RdrRegistryKey>
+    <_RdrRockstar>$([MSBuild]::GetRegistryValueFromView('$(_RdrRegistryKey)', 'InstallFolder', null, RegistryView.Registry32, RegistryView.Registry64))</_RdrRockstar>
+    <_RdrSteam>$([MSBuild]::GetRegistryValueFromView('$(_RdrRegistryKey)', 'InstallFolderSteam', null, RegistryView.Registry32, RegistryView.Registry64))</_RdrSteam>
+    <_RdrEpic>$([MSBuild]::GetRegistryValueFromView('$(_RdrRegistryKey)', 'InstallFolderEpic', null, RegistryView.Registry32, RegistryView.Registry64))</_RdrEpic>
+    <_RdrRockstarParent Condition="'$(_RdrRockstar)' != ''">$([System.IO.Path]::GetDirectoryName('$(_RdrRockstar.TrimEnd('\'))'))</_RdrRockstarParent>
+    <_RdrSteamParent Condition="'$(_RdrSteam)' != ''">$([System.IO.Path]::GetDirectoryName('$(_RdrSteam.TrimEnd('\'))'))</_RdrSteamParent>
+    <_RdrEpicParent Condition="'$(_RdrEpic)' != ''">$([System.IO.Path]::GetDirectoryName('$(_RdrEpic.TrimEnd('\'))'))</_RdrEpicParent>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and '$(_RdrRockstar)' != '' and Exists('$(_RdrRockstar)\RDR2.exe')">$(_RdrRockstar)</RDR2Dir>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and '$(_RdrRockstarParent)' != '' and Exists('$(_RdrRockstarParent)\RDR2.exe')">$(_RdrRockstarParent)</RDR2Dir>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and '$(_RdrSteam)' != '' and Exists('$(_RdrSteam)\RDR2.exe')">$(_RdrSteam)</RDR2Dir>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and '$(_RdrSteamParent)' != '' and Exists('$(_RdrSteamParent)\RDR2.exe')">$(_RdrSteamParent)</RDR2Dir>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and '$(_RdrEpic)' != '' and Exists('$(_RdrEpic)\RDR2.exe')">$(_RdrEpic)</RDR2Dir>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and '$(_RdrEpicParent)' != '' and Exists('$(_RdrEpicParent)\RDR2.exe')">$(_RdrEpicParent)</RDR2Dir>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and Exists('C:\Program Files (x86)\Steam\steamapps\common\Red Dead Redemption 2\RDR2.exe')">C:\Program Files (x86)\Steam\steamapps\common\Red Dead Redemption 2</RDR2Dir>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and Exists('C:\Program Files\Rockstar Games\Red Dead Redemption 2\RDR2.exe')">C:\Program Files\Rockstar Games\Red Dead Redemption 2</RDR2Dir>
+    <RDR2Dir Condition="'$(RDR2Dir)' == '' and Exists('C:\Program Files\Epic Games\RedDeadRedemption2\RDR2.exe')">C:\Program Files\Epic Games\RedDeadRedemption2</RDR2Dir>
+    <RDR2Dir>$(RDR2Dir.TrimEnd('\'))</RDR2Dir>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

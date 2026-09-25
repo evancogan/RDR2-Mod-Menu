@@ -15,8 +15,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$props = [xml](Get-Content (Join-Path $PSScriptRoot 'Directory.Build.props'))
-$rdr2Dir = @($props.Project.PropertyGroup | ForEach-Object { $_.RDR2Dir } | Where-Object { $_ })[0]
+# Ask the build where RDR2 is, so this finds the game exactly the way builds do (see Directory.Build.props).
+$anyMod = Get-ChildItem (Join-Path $PSScriptRoot 'Mods') -Filter *.csproj -Recurse | Select-Object -First 1
+$rdr2Dir = (dotnet msbuild $anyMod.FullName -getProperty:RDR2Dir -nologo).Trim()
+if (-not $rdr2Dir) { throw "Couldn't find Red Dead Redemption 2. See Directory.Build.props for how to set its folder." }
 $enabledDir = Join-Path $rdr2Dir 'scripts'
 $disabledDir = Join-Path $rdr2Dir 'scripts_disabled'
 $mods = @(Get-ChildItem (Join-Path $PSScriptRoot 'Mods') -Directory | ForEach-Object Name)

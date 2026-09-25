@@ -1,4 +1,12 @@
 <Project>
+  <!-- Stop early with a clear message if RDR2 or ScriptHookRDR2 .NET can't be found, instead of a pile of compile errors. -->
+  <Target Name="CheckRDR2Dir" BeforeTargets="ResolveAssemblyReferences;Build">
+    <Error Condition="'$(RDR2Dir)' == ''"
+           Text="Couldn't find Red Dead Redemption 2. Launch it once through its launcher so it registers its install folder, or create Directory.Build.local.props next to Directory.Build.props containing: &lt;Project&gt;&lt;PropertyGroup&gt;&lt;RDR2Dir&gt;your RDR2 folder&lt;/RDR2Dir&gt;&lt;/PropertyGroup&gt;&lt;/Project&gt;" />
+    <Error Condition="'$(RDR2Dir)' != '' and !Exists('$(RDR2Dir)\ScriptHookRDRNetAPI.dll')"
+           Text="Found RDR2 at $(RDR2Dir), but ScriptHookRDR2 .NET isn't installed there (no ScriptHookRDRNetAPI.dll). Install ScriptHookRDR2 and ScriptHookRDR2 .NET V2 into that folder first." />
+  </Target>
+
   <!-- Copy the built DLL wherever the mod currently lives: scripts_disabled if it was turned off, otherwise scripts. -->
   <Target Name="DeployToGame" AfterTargets="Build">
     <PropertyGroup>

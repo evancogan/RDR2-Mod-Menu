@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Per-machine RDR2 install path override (see Directory.Build.props)
+Directory.Build.local.props
