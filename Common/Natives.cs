@@ -7,6 +7,22 @@ namespace RDR2ModMenu
     // Workarounds for ScriptHookRDR2 .NET V2 wrappers that read native results wrong.
     public static class Natives
     {
+        // The game's name hash (Jenkins one-at-a-time, lowercase), as GET_HASH_KEY / joaat computes it.
+        public static uint Hash(string name)
+        {
+            uint hash = 0;
+            foreach (char c in name.ToLowerInvariant())
+            {
+                hash += c;
+                hash += hash << 10;
+                hash ^= hash >> 6;
+            }
+            hash += hash << 3;
+            hash ^= hash >> 11;
+            hash += hash << 15;
+            return hash;
+        }
+
         private const ulong GET_PED_LAST_WEAPON_IMPACT_COORD = 0x6C4D0409BA1A2BC2;
 
         // The game writes out-vectors with each float padded to 8 bytes (x, pad, y, pad, z, pad),

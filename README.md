@@ -42,12 +42,17 @@ A few other things worth knowing:
 |---|---|---|---|
 | Player | **Super Speed** | mod | Arthur moves five times faster on foot. Walk, run and sprint like normal. He sticks to the ground, jumps about 10 m high without losing speed (and can't get hurt until he lands), runs across water and sinks when he stops, and swims like a jetski at around 15 m/s, or 25 m/s if you sprint. He won't ragdoll while it's on. |
 | Player | **Body Type** `< Skinny / Medium / Fat >` | setting | Switches between the game's own body-weight outfits, the same ones cutscenes use, so his clothes refit properly. |
+| Player | **Give $1000** | button | Adds $1000 to Arthur's cash. |
+| Player | **Check Honor (test)** | button | Temporary. Shows the honor value the mod can see, so we can confirm it before building an honor changer. Changes nothing. |
 | Needs | **Keep Needs Filled** | mod | Keeps health, stamina and Dead Eye topped up, both the bars and the cores. |
 | Needs | **Refill All Needs** | button | Fills health, stamina and Dead Eye, bars and cores, once. |
 | Needs | **Refill Dead Eye / Health / Stamina** | button | Fills just that one bar and its core. |
 | Weapons | **Dynamite Gun** | mod | Every bullet explodes like dynamite where it lands. Hits closer than 5 m to you are skipped so you don't blow yourself up. |
+| Weapons | **Clean Weapons** | button | Cleans every weapon Arthur is carrying: wear, dirt, soot and damage. Weapons stowed on the horse aren't included, and there's no way to remove rust yet. |
 | Weapons | **Refill Ammo** | button | Fills ammo for every gun and bow, tops up any special ammo you're already carrying, and reloads the gun in your hand. Throwables are left alone. |
 | Horse | **Flying Horse** | mod | On a horse, press `F7` to take off or land. In the air you ride like normal (`W` to walk, `Shift` to go faster, `A` and `D` to steer). `Space` climbs, `Q` descends, and if you do neither the horse holds its height. You and the horse can't get hurt until you're back on the ground. |
+| Crime | **Never Wanted** | mod | The law never comes after you while it's on. Bounties aren't touched. |
+| Crime | **Clear Bounty** | button | Wipes your bounty and the law's record of your past crimes. |
 | Crime | **Clear Wanted Level** | button | Ends the law's current chase. Your bounty doesn't change. |
 
 ## Keys
