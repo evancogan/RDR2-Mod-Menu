@@ -1,106 +1,117 @@
 # RDR2 Mod Menu
 
-RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game menu to turn them on and off. Each mod is its own project and DLL.
+A handful of single-player mods for Red Dead Redemption 2, plus an in-game menu for switching them on and off. Everything is built on ScriptHookRDR2 .NET V2, and each mod is its own small project that builds to its own DLL.
 
-## Setup
+## Getting set up
 
-1. Install [ScriptHookRDR2](https://www.dev-c.com/rdr2/scripthookrdr2/) and ScriptHookRDR2 .NET V2 into the RDR2 folder.
-2. Have Visual Studio 2022 or later (or the .NET SDK) installed.
-3. Clone and build `RDR2-Mod-Menu.slnx`. Each mod's DLL is copied into the game's `scripts\` folder automatically.
+1. Install [ScriptHookRDR2](https://www.dev-c.com/rdr2/scripthookrdr2/) and ScriptHookRDR2 .NET V2 into your RDR2 folder.
+2. Make sure you have Visual Studio 2022 or newer, or at least the .NET SDK.
+3. Clone the repo and build `RDR2-Mod-Menu.slnx`. The build copies each mod's DLL into the game's `scripts\` folder for you.
 
-The build finds the RDR2 folder by itself, from the registry entry the game writes (Rockstar launcher, Steam or Epic) or the standard install folders, so there's nothing to configure. If it can't, or you want a different copy of the game, create `Directory.Build.local.props` next to `Directory.Build.props` (it's git-ignored):
+You don't need to tell the build where RDR2 lives. It reads the install location the game leaves in the Windows registry (this works for the Rockstar launcher, Steam and Epic), and falls back to the usual install folders. If your setup is unusual, or you want to point at a different copy of the game, add a `Directory.Build.local.props` file next to `Directory.Build.props`. Git ignores it, so it stays on your machine:
 
 ```xml
 <Project><PropertyGroup><RDR2Dir>E:\Games\Red Dead Redemption 2</RDR2Dir></PropertyGroup></Project>
 ```
 
-An `RDR2Dir` environment variable works too. If RDR2 or ScriptHookRDR2 .NET can't be found, the build stops with a message saying which.
+Setting an `RDR2Dir` environment variable does the same thing. If the build can't find the game, or finds it but ScriptHookRDR2 .NET isn't installed there, it stops and tells you which.
 
-## In-game
+## Using it in-game
 
-- `F9` opens the **mod menu**: a list of sections (Player, Needs, Weapons, Horse, Crime), each showing how many of its mods are on. `Up`/`Down` selects, `Enter` opens a section, `F9` closes.
-- A section holds everything on that topic, whatever kind it is: on/off mods (`Enter` toggles, shows ON/OFF), one-press buttons (`Enter` uses, shows USE) and scrolling settings (`Left`/`Right` change, shows `< value >`). `Backspace` goes back.
-- Every mod starts **off** until you turn it on in the menu. Turning one on shows `<Mod Name>: ON` with a one-line how-to.
-- A few seconds after scripts load, a subtitle says how many mods and actions loaded and how many mods are on. That's the smoke test that everything loaded.
-- `Insert` reloads scripts after a rebuild. Mods come back on or off the way you left them.
+Press `F9` to open the menu. You'll see a list of sections (Player, Needs, Weapons, Horse, Crime), and each one shows how many of its mods are currently on. Use `Up` and `Down` to move, `Enter` to open a section, and `F9` again to close the menu.
+
+Inside a section you'll find three kinds of entries:
+
+- **Mods** show ON or OFF. Press `Enter` to flip them.
+- **Buttons** show USE. Press `Enter` and they do their thing once.
+- **Settings** show `< value >`. Press `Left` or `Right` to change them.
+
+`Backspace` takes you back to the section list.
+
+A few other things worth knowing:
+
+- Every mod starts off. Turning one on pops up a subtitle with a quick reminder of how to use it.
+- A few seconds after the scripts load, a subtitle tells you how many mods and actions loaded and how many are on. If you see it, everything loaded fine.
+- `Insert` reloads all scripts, which is how you pick up a fresh build without restarting the game. Mods come back exactly how you left them.
 - `F8` opens the .NET console.
-- Debug output from every mod goes to `RDR2ModMenu.log` next to `RDR2.exe`.
+- Every mod writes its debug output to `RDR2ModMenu.log`, next to `RDR2.exe`.
 
-## Menu sections
+## What's in the menu
 
-| Section | Entry | Kind | What it does |
+| Section | Entry | Type | What it does |
 |---|---|---|---|
-| Player | **Super Speed** | on/off | Arthur moves 5× faster on foot; walk, run and sprint as normal. Follows the ground, jumps about 10 m high keeping his speed (invincible until he lands), runs across water (sinks when he stops), and swims like a jetski (about 15 m/s, 25 m/s sprinting). He won't ragdoll while it's on. |
-| Player | **Body Type** `< Skinny / Medium / Fat >` | setting | Uses the game's own body-weight outfits (the ones cutscenes switch between), so clothes refit. |
-| Needs | **Keep Needs Filled** | on/off | Keeps health, stamina and Dead Eye full, bars and cores. |
+| Player | **Super Speed** | mod | Arthur moves five times faster on foot. Walk, run and sprint like normal. He sticks to the ground, jumps about 10 m high without losing speed (and can't get hurt until he lands), runs across water and sinks when he stops, and swims like a jetski at around 15 m/s, or 25 m/s if you sprint. He won't ragdoll while it's on. |
+| Player | **Body Type** `< Skinny / Medium / Fat >` | setting | Switches between the game's own body-weight outfits, the same ones cutscenes use, so his clothes refit properly. |
+| Needs | **Keep Needs Filled** | mod | Keeps health, stamina and Dead Eye topped up, both the bars and the cores. |
 | Needs | **Refill All Needs** | button | Fills health, stamina and Dead Eye, bars and cores, once. |
-| Needs | **Refill Dead Eye / Health / Stamina** | button | Fills that one bar and its core. |
-| Weapons | **Dynamite Gun** | on/off | Every bullet explodes like dynamite where it lands (skips hits within 5 m of you). |
-| Weapons | **Refill Ammo** | button | Fills ammo for every gun and bow, tops up special ammo you already carry, and reloads your gun. Skips throwables. |
-| Horse | **Flying Horse** | on/off | On a horse, `F7` takes off or lands. Ride as normal in the air (`W` walk, `Shift` faster, `A`/`D` steer); `Space` rises, `Q` descends, otherwise it holds altitude. Rider and horse are invincible until touching down. |
-| Crime | **Clear Wanted Level** | button | Ends the law's current pursuit. Your bounty stays as it is. |
+| Needs | **Refill Dead Eye / Health / Stamina** | button | Fills just that one bar and its core. |
+| Weapons | **Dynamite Gun** | mod | Every bullet explodes like dynamite where it lands. Hits closer than 5 m to you are skipped so you don't blow yourself up. |
+| Weapons | **Refill Ammo** | button | Fills ammo for every gun and bow, tops up any special ammo you're already carrying, and reloads the gun in your hand. Throwables are left alone. |
+| Horse | **Flying Horse** | mod | On a horse, press `F7` to take off or land. In the air you ride like normal (`W` to walk, `Shift` to go faster, `A` and `D` to steer). `Space` climbs, `Q` descends, and if you do neither the horse holds its height. You and the horse can't get hurt until you're back on the ground. |
+| Crime | **Clear Wanted Level** | button | Ends the law's current chase. Your bounty doesn't change. |
 
 ## Keys
 
-Rockstar doesn't publish an official list; the in-game Settings → Controls → Key Bindings menu is the source of truth. Default PC bindings on function keys, from community lists and the Script Hook readme:
+Rockstar doesn't publish an official list of default keys, so the in-game Key Bindings screen (Settings > Controls) has the final word. Here's what the function keys are used for by default, pieced together from community lists and the Script Hook readme:
 
 | Key | Used by |
 |---|---|
 | `F1` | Game: feed message |
-| `F4` | Game: satchel / journal / weapon and item wheels |
-| `F5` | Native Trainer (ships with ScriptHookRDR2) |
+| `F4` | Game: satchel, journal, weapon and item wheels |
+| `F5` | Native Trainer (comes with ScriptHookRDR2) |
 | `F6` | Game: Photo Mode |
-| `F7` | Flying Horse: take off / land |
+| `F7` | Flying Horse: take off or land |
 | `F8` | .NET console |
 | `F9` | Mod menu |
 | `F12` | Steam screenshot |
 | `Insert` | Reload scripts |
 
-Free for new mods: `F2`, `F3`, `F10`, `F11`. While riding, `Ctrl` (stop), `C` (turn the camera around) and `X` are taken by the game too.
+`F2`, `F3`, `F10` and `F11` are free for new mods. While you're on a horse, the game also uses `Ctrl` (stop), `C` (turn the camera around) and `X`.
 
-## Layout
+## How the project is laid out
 
-- `Mods/<Name>/` — one folder per mod project. Builds to `<Name>.dll` and is copied into the game's `scripts\` folder. A project can hold several mods and actions (`Needs` holds Keep Needs Filled and the refill actions).
-- `Core/ModMenu/` — the F9 mod menu. Always loaded.
-- `Common/` — shared code compiled into every DLL, so each one stands alone: `ModScript` (on/off mods), `ModAction` (buttons), `ModChoice` (scrolling settings), `ModRegistry` (the list the menu reads), `ModSettings` (saved on/off state), `ScreenText` (flicker-free menu text), `Log`, `Natives`.
-- `Directory.Build.props` — shared settings: finding the game folder (`RDR2Dir`), .NET Framework 4.8, x64, API reference.
-- `Directory.Build.targets` — stops the build with a clear message if RDR2 or ScriptHookRDR2 .NET is missing, and copies each built DLL into the game folder.
+- `Mods/<Name>/` holds one mod project each. It builds to `<Name>.dll`, which gets copied into the game's `scripts\` folder. One project can hold several entries; `Needs`, for example, has Keep Needs Filled and all the refill buttons.
+- `Core/ModMenu/` is the `F9` menu itself. It's always loaded.
+- `Common/` is shared code that gets compiled into every DLL, so each one works on its own. It has `ModScript` (mods), `ModAction` (buttons), `ModChoice` (settings), `ModRegistry` (the list the menu reads from), `ModSettings` (remembers what's on), `ScreenText` (menu text that doesn't flicker), `Log` and `Natives`.
+- `Directory.Build.props` has the shared build settings: finding the game folder, .NET Framework 4.8, x64 and the Script Hook API reference.
+- `Directory.Build.targets` stops the build with a clear message if RDR2 or ScriptHookRDR2 .NET is missing, and copies each built DLL into the game.
+
 ## Adding a mod
 
-1. Create `Mods/<Name>/<Name>.csproj` containing just `<Project Sdk="Microsoft.NET.Sdk" />`.
-2. Add a class deriving from `ModScript` (an on/off mod), `ModAction` (a button) or `ModChoice` (a scrolling setting) in that folder.
+1. Create `Mods/<Name>/<Name>.csproj` with just `<Project Sdk="Microsoft.NET.Sdk" />` in it.
+2. In that folder, add a class that derives from `ModScript` for a mod, `ModAction` for a button, or `ModChoice` for a setting.
 3. Add the project to `RDR2-Mod-Menu.slnx` under the `/Mods/` folder.
-4. If it has its own hotkeys, pick free ones from the Keys table above and add them to it.
+4. If it needs its own hotkeys, pick free ones from the Keys table and add them there.
 
-## The ModScript standard
+### Mods
 
-Every mod derives from `ModScript`, which registers it with the mod menu, turns it on and off from there (with an `ON`/`OFF` subtitle and a log entry), and saves its state. A mod fills in:
+A mod derives from `ModScript`. That base class puts it in the menu, handles turning it on and off (with the ON/OFF subtitle and a log line) and remembers its state. You fill in:
 
-- `Description` — one line shown in the menu and in the `ON` subtitle (required).
-- `Category` — the menu section it's listed in, e.g. `"Player"` (required).
-- `OnEnabledTick()` — per-frame work while on (required).
-- `OnEnable()` — setup when turned on; return `false` to refuse.
-- `OnDisable()` — cleanup when turned off.
-- `OnDisabledTick()` — anything that must keep running while off (e.g. finishing a landing).
-- `OnAborted()` — undo lasting effects when scripts reload; defaults to `OnDisable()` if on.
+- `Description`: one line for the menu and the ON subtitle. Required.
+- `Category`: which menu section it goes in, like `"Player"`. Required.
+- `OnEnabledTick()`: what it does every frame while it's on. Required.
+- `OnEnable()`: any setup when it's turned on. Return `false` to refuse.
+- `OnDisable()`: cleanup when it's turned off.
+- `OnDisabledTick()`: anything that has to keep running while it's off, like finishing a landing.
+- `OnAborted()`: undo anything lasting when scripts reload. By default it calls `OnDisable()` if the mod was on.
 
-A mod's own hotkeys should only do something while `IsEnabled`. A mod can call `Disable("reason")` to switch itself off.
+A mod's own hotkeys should only do anything while `IsEnabled` is true, and a mod can switch itself off by calling `Disable("reason")`.
 
-On/off states are saved to `RDR2ModMenu.ini` next to `RDR2.exe` (`ModName=on|off`, one per line). You can edit it by hand; delete a line to reset that mod to off.
+Which mods are on gets saved to `RDR2ModMenu.ini` next to `RDR2.exe`, one `ModName=on` or `ModName=off` line each. You can edit it by hand, and deleting a line resets that mod to off.
 
 ### Buttons and settings
 
-For a one-press button, derive from `ModAction`. It shows as `USE`; pressing `Enter` runs it once. Fill in `Category`, `Description` and `Run()`, which does the work and returns the subtitle to show.
+For a button, derive from `ModAction`. It shows up as USE, and pressing `Enter` runs it once. Fill in `Category`, `Description` and `Run()`. `Run()` does the work and returns the subtitle to show afterwards.
 
-For a scrolling setting, derive from `ModChoice`: fill in `Category`, `Description`, `Choices` and `Apply(index)`, and optionally `InitialChoice`. `Left`/`Right` move through the choices and apply each one straight away.
+For a setting, derive from `ModChoice`. Fill in `Category`, `Description`, `Choices` and `Apply(index)`, and `InitialChoice` if you want it to start somewhere other than the first option. `Left` and `Right` step through the choices and apply each one straight away.
 
 ### Sections
 
-Every entry's `Category` is its menu section; mods, buttons and settings on the same topic share one. Within a section, on/off mods come first, then settings, then buttons. The order of sections is set by `SectionOrder` in `ModMenu.cs`; new sections follow alphabetically.
+An entry's `Category` decides which section it lands in, so mods, buttons and settings about the same thing end up together. Inside a section, mods are listed first, then settings, then buttons. The section order is set by `SectionOrder` in `ModMenu.cs`, and any new sections go after those in alphabetical order.
 
-## Loading and unloading mod DLLs (developer tool)
+## Loading and unloading mod DLLs
 
-Normally every mod stays loaded and the menu turns them on and off. To stop the game from loading a mod project's DLL at all, run `mods` from the repo root, then press `Insert` in-game:
+Normally every mod stays loaded and you use the menu to turn them on and off. If you want the game to skip loading a mod project's DLL entirely, run `mods` from the repo root and then press `Insert` in-game:
 
 ```
 mods                      list mod projects and whether each DLL is loaded
@@ -109,11 +120,11 @@ mods enable DynamiteGun
 mods disable DynamiteGun
 ```
 
-It moves each DLL between the game's `scripts\` and `scripts_disabled\` folders. Builds copy a mod into whichever folder it's currently in. `Core` DLLs like the mod menu are never moved.
+It just moves DLLs between the game's `scripts\` and `scripts_disabled\` folders. Builds put a mod back wherever it currently is, and the menu itself (anything under `Core`) is never moved.
 
-## Notes
+## Things we learned the hard way
 
-- V2's `Ped.GetLastWeaponImpactCoords` returns scrambled coordinates (the game pads each float to 8 bytes). Use `Natives.TryGetLastWeaponImpact` instead, and expect the same bug in other V2 wrappers that return a `Vector3` through a pointer.
-- The game's "is in the air" check (`IsInAir`) is unreliable for horses; it reported false for most of a flight.
-- For water, `TEST_VERTICAL_PROBE_AGAINST_ALL_WATER` finds rivers; `GET_WATER_HEIGHT` and `GET_WATER_HEIGHT_NO_WAVES` didn't.
-- On foot and on horseback, the game ignores speed set while on the ground (animation moves them); placing by position with "keep tasks" works. See the comments in `FlyingHorse.cs` and `SuperSpeed.cs`.
+- V2's `Ped.GetLastWeaponImpactCoords` gives back scrambled coordinates, because the game pads each number to 8 bytes and V2 doesn't expect that. Use `Natives.TryGetLastWeaponImpact` instead, and watch for the same problem anywhere else V2 hands back a `Vector3` through a pointer.
+- The game's "is in the air" check (`IsInAir`) can't be trusted for horses. It said false for most of a flight.
+- To find water, `TEST_VERTICAL_PROBE_AGAINST_ALL_WATER` works on rivers. `GET_WATER_HEIGHT` and `GET_WATER_HEIGHT_NO_WAVES` didn't find anything.
+- When Arthur or a horse is on the ground, the game ignores any speed you set, because the animation is what moves them. Moving them by position with "keep tasks" works instead. The comments in `FlyingHorse.cs` and `SuperSpeed.cs` go into more detail.
