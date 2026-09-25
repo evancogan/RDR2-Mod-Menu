@@ -18,7 +18,7 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2. Each mod is its ow
 | **DynamiteGun** | Every bullet explodes like dynamite where it lands (skips hits within 5 m of you). |
 | **FlyingHorse** | On a horse, `F7` takes off or lands. Ride as normal in the air (`W` walk, `Shift` faster, `A`/`D` steer); `Space` rises, `Q` descends, otherwise it holds altitude. Rider and horse are invincible until touching down. |
 | **Refill Needs** *(action)* | Fills Arthur's health, stamina and Dead Eye, bars and cores. Select it and press `Enter`. |
-| **SuperSpeed** | Arthur moves 5× faster on foot; walk, run and sprint as normal. Follows the ground, jumps about 10 m high keeping his speed (invincible until he lands), and runs across water (sinks when he stops). He won't ragdoll while it's on. |
+| **SuperSpeed** | Arthur moves 5× faster on foot; walk, run and sprint as normal. Follows the ground, jumps about 10 m high keeping his speed (invincible until he lands), runs across water (sinks when he stops), and swims like a jetski (about 15 m/s, 25 m/s sprinting). He won't ragdoll while it's on. |
 
 ## Keys
 

@@ -52,6 +52,15 @@ namespace AIPlayground
         private const int LaunchWindowMs = 500;
         private const int LandedMs = 300;
 
+        // Swimming: speed along the way he's swimming, in m/s (normal swimming is about 1.5), with sprint held and
+        // without. The game's own swim-speed multiplier is capped low, so it just helps his strokes keep up.
+        private const float SwimSpeed = 15f;
+        private const float SwimSprintSpeed = 25f;
+        private const float SwimAnimationMultiplier = 1.49f;
+
+        // Stop boosting once the bottom ahead is this close below him, so he wades out instead of ramming the bank.
+        private const float MinSwimDepth = 1f;
+
         private bool wasJumping;
         private bool superJumping;
         private bool launching;
@@ -87,6 +96,12 @@ namespace AIPlayground
             if (superJumping)
             {
                 UpdateSuperJump(player);
+                return;
+            }
+
+            if (player.IsSwimming)
+            {
+                Swim(player, position, velocity);
                 return;
             }
 
@@ -170,6 +185,38 @@ namespace AIPlayground
             LogSpeed(player, gaitSpeed, $"surface {(onWater ? "water" : "ground")} {surfaceZ:F1}, standing height {standingHeight:F2}");
         }
 
+        // Jetski swimming: placed along the way he's swimming, like the on-foot boost. At the surface only horizontally,
+        // so he stays at the surface; underwater along his full swimming direction.
+        private void Swim(Ped player, Vector3 position, Vector3 velocity)
+        {
+            PLAYER.SET_SWIM_MULTIPLIER_FOR_PLAYER(Game.Player.Handle, SwimAnimationMultiplier);
+            runningOnWater = false;
+            wetLineZ = null;
+
+            bool underwater = player.IsSwimmingUnderwater;
+            Vector3 direction = underwater ? velocity : new Vector3(velocity.X, velocity.Y, 0f);
+            float moving = (float)Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y + direction.Z * direction.Z);
+            if (moving < MinMovingSpeed)
+            {
+                LogSpeed(player, 0f, "swimming, still");
+                return;
+            }
+
+            bool sprint = Game.IsControlPressed(eInputType.Sprint);
+            float step = (sprint ? SwimSprintSpeed : SwimSpeed) * Math.Min(Game.FrameTime, 0.1f);
+            Vector3 next = position + direction * (step / moving);
+
+            float groundZ;
+            if (!underwater && Natives.TryGetGroundZ(next.X, next.Y, position.Z + 2f, out groundZ) && groundZ > position.Z - MinSwimDepth)
+            {
+                LogSpeed(player, 0f, $"swimming, shallows ahead (bottom {groundZ:F1})");
+                return;
+            }
+
+            ENTITY.SET_ENTITY_COORDS_NO_OFFSET(player.Handle, next, true, false, false);
+            LogSpeed(player, 0f, $"swimming{(underwater ? " underwater" : "")}, target {(sprint ? SwimSprintSpeed : SwimSpeed):F0} m/s");
+        }
+
         // The placement boost only works on the ground, so a normal jump leaves with un-boosted speed. In the air, speed
         // we set does take effect: launch him upward and carry his full boosted speed through the jump.
         private void StartSuperJump(Ped player, float gaitSpeed, Vector3 velocity, float moving)
@@ -250,6 +297,7 @@ namespace AIPlayground
             Ped player = Game.Player.Character;
             player.CanRagdoll = true;
             PED.SET_PED_MOVE_RATE_OVERRIDE(player.Handle, 1f);
+            PLAYER.SET_SWIM_MULTIPLIER_FOR_PLAYER(Game.Player.Handle, 1f);
             runningOnWater = false;
             if (superJumping)
             {
