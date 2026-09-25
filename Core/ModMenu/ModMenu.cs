@@ -8,10 +8,10 @@ using Screen = RDR2.UI.Screen;
 
 namespace AIPlayground
 {
-    // F9 opens the menu. The main page lists on/off mods (Enter toggles) and ends with "Actions >", which opens a list
-    // of categories (Needs, Body Type, Crime...). A category lists its buttons (Enter uses one) and scrolling choices
-    // (Left/Right). Backspace goes back a level, F9 closes. A few seconds after loading it announces what loaded,
-    // as a smoke test.
+    // F9 opens the menu. The main page lists on/off mods (Enter toggles) and ends with "Actions >". The Actions page
+    // lists category folders (Needs, Crime...) and any actions without a category directly (like Body Type), so it's
+    // never more than one folder deep. Enter uses a button or opens a folder, Left/Right change a scrolling setting,
+    // Backspace goes back a level, F9 closes. A few seconds after loading it announces what loaded, as a smoke test.
     public class ModMenu : Script
     {
         private const Keys MenuKey = Keys.F9;
@@ -19,8 +19,8 @@ namespace AIPlayground
         // Wait for every mod DLL to finish loading and registering before announcing.
         private const int AnnounceDelayMs = 3000;
 
-        // Categories in this order first; any others follow alphabetically.
-        private static readonly string[] CategoryOrder = { "Needs", "Body Type", "Crime" };
+        // Rows on the Actions page in this order first (folders and inline actions by name); others follow alphabetically.
+        private static readonly string[] ActionsOrder = { "Needs", "Body Type", "Crime" };
 
         // Layout, in fractions of the screen.
         private const float Left = 0.05f;
@@ -33,18 +33,27 @@ namespace AIPlayground
         private const float SmallTextScale = 0.3f;
 
         private const string ActionsRowName = "Actions";
-        private const string ActionsRowDescription = "One-press buttons and settings, by category.";
+        private const string ActionsRowDescription = "One-press buttons and settings.";
 
-        private enum Page { Mods, Categories, Category }
+        private enum Page { Mods, Actions, Folder }
+
+        // A row on the Actions page: either a category folder or an action/setting shown directly.
+        private sealed class ActionsRow
+        {
+            public string Folder;
+            public ModInfo Item;
+
+            public string Name => Folder ?? Item.Name;
+        }
 
         private bool open;
         private Page page = Page.Mods;
-        private readonly Dictionary<Page, int> selected = new Dictionary<Page, int> { [Page.Mods] = 0, [Page.Categories] = 0, [Page.Category] = 0 };
-        private string openCategory;
+        private readonly Dictionary<Page, int> selected = new Dictionary<Page, int> { [Page.Mods] = 0, [Page.Actions] = 0, [Page.Folder] = 0 };
+        private string openFolder;
 
         private List<ModInfo> toggles = new List<ModInfo>();
-        private List<string> categories = new List<string>();
-        private List<ModInfo> categoryItems = new List<ModInfo>();
+        private List<ActionsRow> actionsRows = new List<ActionsRow>();
+        private List<ModInfo> folderItems = new List<ModInfo>();
 
         private readonly int announceAt;
         private bool announced;
@@ -60,8 +69,8 @@ namespace AIPlayground
 
         // The mods page has one extra row at the bottom that opens Actions, when there are any.
         private int RowCount =>
-            page == Page.Mods ? toggles.Count + (categories.Count > 0 ? 1 : 0) :
-            page == Page.Categories ? categories.Count : categoryItems.Count;
+            page == Page.Mods ? toggles.Count + (actionsRows.Count > 0 ? 1 : 0) :
+            page == Page.Actions ? actionsRows.Count : folderItems.Count;
 
         private int Selected
         {
@@ -69,9 +78,14 @@ namespace AIPlayground
             set => selected[page] = value;
         }
 
-        private bool ActionsRowSelected => page == Page.Mods && categories.Count > 0 && Selected == toggles.Count;
+        private bool ActionsRowSelected => page == Page.Mods && actionsRows.Count > 0 && Selected == toggles.Count;
 
-        private ModInfo SelectedItem => page == Page.Category && Selected < categoryItems.Count ? categoryItems[Selected] : null;
+        private ActionsRow SelectedActionsRow => page == Page.Actions && Selected < actionsRows.Count ? actionsRows[Selected] : null;
+
+        // The button or setting under the cursor, on the Actions page or in a folder.
+        private ModInfo SelectedItem =>
+            page == Page.Folder ? (Selected < folderItems.Count ? folderItems[Selected] : null) :
+            SelectedActionsRow?.Item;
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
@@ -96,10 +110,10 @@ namespace AIPlayground
                     Move(1);
                     break;
                 case Keys.Left:
-                    SelectedItem?.Step(-1);
+                    StepChoice(-1);
                     break;
                 case Keys.Right:
-                    SelectedItem?.Step(1);
+                    StepChoice(1);
                     break;
                 case Keys.Enter:
                     Select();
@@ -119,53 +133,61 @@ namespace AIPlayground
             }
         }
 
+        private void StepChoice(int step)
+        {
+            ModInfo item = SelectedItem;
+            if (item != null && item.IsChoice)
+            {
+                item.Step(step);
+            }
+        }
+
         private void Select()
         {
-            switch (page)
+            if (page == Page.Mods)
             {
-                case Page.Mods:
-                    if (ActionsRowSelected)
-                    {
-                        page = Page.Categories;
-                    }
-                    else if (Selected < toggles.Count)
-                    {
-                        toggles[Selected].Activate();
-                    }
-                    break;
-                case Page.Categories:
-                    if (Selected < categories.Count)
-                    {
-                        openCategory = categories[Selected];
-                        page = Page.Category;
-                        selected[Page.Category] = 0;
-                    }
-                    break;
-                case Page.Category:
-                    ModInfo item = SelectedItem;
-                    if (item == null)
-                    {
-                        break;
-                    }
-                    if (item.IsChoice)
-                    {
-                        item.Step(1);
-                    }
-                    else
-                    {
-                        item.Activate();
-                    }
-                    break;
+                if (ActionsRowSelected)
+                {
+                    page = Page.Actions;
+                }
+                else if (Selected < toggles.Count)
+                {
+                    toggles[Selected].Activate();
+                }
+                return;
+            }
+
+            ActionsRow row = SelectedActionsRow;
+            if (row != null && row.Folder != null)
+            {
+                openFolder = row.Folder;
+                page = Page.Folder;
+                selected[Page.Folder] = 0;
+                return;
+            }
+
+            ModInfo item = SelectedItem;
+            if (item == null)
+            {
+                return;
+            }
+            if (item.IsChoice)
+            {
+                item.Step(1);
+            }
+            else
+            {
+                item.Activate();
             }
         }
 
         private void Back()
         {
-            if (page == Page.Category)
+            if (page == Page.Folder)
             {
-                page = Page.Categories;
+                page = Page.Actions;
             }
-            else if (page == Page.Categories)
+            else if (page == Page.Actions)
             {
                 page = Page.Mods;
             }
@@ -184,7 +206,7 @@ namespace AIPlayground
                 int mods = all.Count(m => m.IsToggle);
                 int on = all.Count(m => m.IsEnabled);
                 Screen.DisplaySubtitle($"RDR2 Mod Menu: {mods} mods loaded ({on} on), {all.Count - mods} actions. F9 for menu.");
-                Log.Write($"Loaded: {string.Join(", ", all.Select(m => $"{m.Name} ({(m.IsToggle ? (m.IsEnabled ? "on" : "off") : m.Category)})"))}");
+                Log.Write($"Loaded: {string.Join(", ", all.Select(m => $"{m.Name} ({(m.IsToggle ? (m.IsEnabled ? "on" : "off") : m.Category ?? "Actions")})"))}");
             }
 
             if (!open)
@@ -201,11 +223,11 @@ namespace AIPlayground
                 case Page.Mods:
                     DrawModsPage();
                     break;
-                case Page.Categories:
-                    DrawCategoriesPage();
+                case Page.Actions:
+                    DrawActionsPage();
                     break;
-                case Page.Category:
-                    DrawCategoryPage();
+                case Page.Folder:
+                    DrawFolderPage();
                     break;
             }
         }
@@ -214,16 +236,21 @@ namespace AIPlayground
         {
             List<ModInfo> all = ModRegistry.GetAll();
             toggles = all.Where(m => m.IsToggle).ToList();
-            categories = all.Where(m => !m.IsToggle && m.Category != null).Select(m => m.Category).Distinct()
-                .OrderBy(c => Array.IndexOf(CategoryOrder, c) is int i && i >= 0 ? i : CategoryOrder.Length)
-                .ThenBy(c => c).ToList();
-            categoryItems = all.Where(m => !m.IsToggle && m.Category == openCategory).ToList();
 
-            if (page == Page.Category && categoryItems.Count == 0)
+            List<ModInfo> actions = all.Where(m => !m.IsToggle).ToList();
+            actionsRows = actions.Where(m => m.Category != null).Select(m => m.Category).Distinct()
+                .Select(folder => new ActionsRow { Folder = folder })
+                .Concat(actions.Where(m => m.Category == null).Select(m => new ActionsRow { Item = m }))
+                .OrderBy(r => Array.IndexOf(ActionsOrder, r.Name) is int i && i >= 0 ? i : ActionsOrder.Length)
+                .ThenBy(r => r.Name)
+                .ToList();
+            folderItems = actions.Where(m => m.Category != null && m.Category == openFolder).ToList();
+
+            if (page == Page.Folder && folderItems.Count == 0)
             {
-                page = Page.Categories;
+                page = Page.Actions;
             }
-            if (page == Page.Categories && categories.Count == 0)
+            if (page == Page.Actions && actionsRows.Count == 0)
             {
                 page = Page.Mods;
             }
@@ -256,10 +283,10 @@ namespace AIPlayground
                 y += RowHeight;
             }
 
-            if (categories.Count > 0)
+            if (actionsRows.Count > 0)
             {
                 DrawItemRow(y, ActionsRowSelected, ActionsRowName);
-                DrawText(">", Left + Width - 0.025f, y, TextScale, 230, 190, 90);
+                DrawFolderMark(y);
                 y += RowHeight;
             }
 
@@ -269,47 +296,74 @@ namespace AIPlayground
             DrawFooter(y, "Up/Down select    Enter toggle/open    F9 close");
         }
 
-        private void DrawCategoriesPage()
+        private void DrawActionsPage()
         {
             float y = DrawTitle("RDR2 Mod Menu  >  Actions");
 
-            for (int i = 0; i < categories.Count; i++)
+            for (int i = 0; i < actionsRows.Count; i++)
             {
-                DrawItemRow(y, i == Selected, categories[i]);
-                DrawText(">", Left + Width - 0.025f, y, TextScale, 230, 190, 90);
-                y += RowHeight;
-            }
-
-            DrawFooter(y, "Up/Down select    Enter open    Backspace back    F9 close");
-        }
-
-        private void DrawCategoryPage()
-        {
-            float y = DrawTitle($"RDR2 Mod Menu  >  Actions  >  {openCategory}");
-
-            for (int i = 0; i < categoryItems.Count; i++)
-            {
-                ModInfo item = categoryItems[i];
-                DrawItemRow(y, i == Selected, item.Name);
-                if (item.IsChoice)
+                ActionsRow row = actionsRows[i];
+                DrawItemRow(y, i == Selected, row.Name);
+                if (row.Folder != null)
                 {
-                    string[] choices = item.Choices;
-                    int current = item.CurrentChoice;
-                    string value = current >= 0 && current < choices.Length ? choices[current] : "";
-                    DrawText($"<  {value}  >", Left + Width - 0.1f, y, TextScale, 230, 190, 90);
+                    DrawFolderMark(y);
                 }
                 else
                 {
-                    DrawText("USE", Left + Width - 0.04f, y, TextScale, 230, 190, 90);
+                    DrawItemValue(y, row.Item);
                 }
                 y += RowHeight;
             }
 
-            ModInfo selectedItem = SelectedItem;
-            y = DrawDescription(y, selectedItem?.Description);
-            DrawFooter(y, selectedItem != null && selectedItem.IsChoice
-                ? "Left/Right change    Backspace back    F9 close"
-                : "Up/Down select    Enter use    Backspace back    F9 close");
+            ModInfo item = SelectedItem;
+            y = DrawDescription(y, item?.Description);
+            DrawFooter(y, FooterFor(item, "Enter open"));
+        }
+
+        private void DrawFolderPage()
+        {
+            float y = DrawTitle($"RDR2 Mod Menu  >  Actions  >  {openFolder}");
+
+            for (int i = 0; i < folderItems.Count; i++)
+            {
+                DrawItemRow(y, i == Selected, folderItems[i].Name);
+                DrawItemValue(y, folderItems[i]);
+                y += RowHeight;
+            }
+
+            ModInfo item = SelectedItem;
+            y = DrawDescription(y, item?.Description);
+            DrawFooter(y, FooterFor(item, "Enter use"));
+        }
+
+        private static string FooterFor(ModInfo item, string enterHint)
+        {
+            if (item != null && item.IsChoice)
+            {
+                return "Left/Right change    Backspace back    F9 close";
+            }
+            return $"Up/Down select    {(item != null ? "Enter use" : enterHint)}    Backspace back    F9 close";
+        }
+
+        // "USE" for a button, "<  Medium  >" for a scrolling setting.
+        private static void DrawItemValue(float y, ModInfo item)
+        {
+            if (item.IsChoice)
+            {
+                string[] choices = item.Choices;
+                int current = item.CurrentChoice;
+                string value = current >= 0 && current < choices.Length ? choices[current] : "";
+                DrawText($"<  {value}  >", Left + Width - 0.1f, y, TextScale, 230, 190, 90);
+            }
+            else
+            {
+                DrawText("USE", Left + Width - 0.04f, y, TextScale, 230, 190, 90);
+            }
+        }
+
+        private static void DrawFolderMark(float y)
+        {
+            DrawText(">", Left + Width - 0.025f, y, TextScale, 230, 190, 90);
         }
 
         private float DrawTitle(string title)
