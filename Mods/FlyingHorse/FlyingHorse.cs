@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using RDR2;
 using RDR2.Math;
@@ -7,25 +8,39 @@ using Screen = RDR2.UI.Screen;
 
 namespace AIPlayground
 {
-    // While enabled, press F7 on a horse to take off or land. The horse flies where the camera looks:
-    // W/S forward/back, Shift for speed, Space to climb. Let go of everything to hover.
+    // While enabled, press F7 on a horse to take off or land. In the air the horse rides as normal
+    // (W walk, Shift faster, A/D steer, with the game's own animations); this mod only controls height:
+    // Space rises, C descends, and otherwise the horse holds its altitude.
     //
-    // Flight freezes the horse's physics and moves it directly each frame, so the game's falling
-    // behavior never kicks in. It stays at least GroundClearance above the ground but can pass through
-    // buildings and trees.
+    // How height is controlled, and why (all found by testing in-game):
+    // - The horse's own riding moves it horizontally. The mod never sets its heading or horizontal speed:
+    //   doing so made the game draw the horse facing opposite its rider.
+    // - Height is set by placing the horse every frame, never by vertical speed. Any downward speed above a crawl
+    //   switches the horse into the game's falling state, after which it ignores the speed we set and drops.
+    //   Switching between speed and placement also triggered falls.
+    // - Placement keeps the horse's tasks but not its IK (see Place): clearing tasks flipped the horse around,
+    //   and keeping IK let the falling state start mid-descent.
     public class FlyingHorse : ModScript
     {
-        protected override string Description => "On a horse, press F7 to take off or land. Fly where you look: W/S, Shift faster, Space climb.";
+        protected override string Description => "On a horse, press F7 to take off or land. Ride as normal (W walk, Shift faster, A/D steer); Space rises, C descends.";
 
         private const Keys FlyKey = Keys.F7;
 
-        private const float CruiseSpeed = 15f;
-        private const float SprintSpeed = 40f;
-        private const float ClimbSpeed = 10f;
-        private const float TakeoffLift = 2f;
+        // Not Ctrl: that's the game's horse-stop control.
+        private const Keys DescendKey = Keys.C;
 
-        // How quickly the horse reaches its target speed, per second. Lower feels floatier.
-        private const float Acceleration = 4f;
+        private const float RiseSpeed = 8f;
+
+        // TEMPORARY: [ and ] adjust the descent speed in-game.
+        private float descendSpeed = 4f;
+        private const Keys DescendSlowerKey = Keys.OemOpenBrackets;
+        private const Keys DescendFasterKey = Keys.OemCloseBrackets;
+
+        // How long takeoff rises on its own, in milliseconds.
+        private const int TakeoffMs = 400;
+
+        // How quickly vertical speed reaches its target, per second. Lower feels floatier.
+        private const float VerticalAcceleration = 5f;
 
         // Minimum height above the ground while flying, on top of the horse's normal standing height.
         private const float GroundClearance = 0.5f;
@@ -37,11 +52,16 @@ namespace AIPlayground
 
         private enum FlightState { Grounded, Flying, Landing }
 
+        // Space and C are read straight from the keyboard: mounted, the game didn't report Space
+        // through the horse-jump control.
+        private readonly HashSet<Keys> heldKeys = new HashSet<Keys>();
+
         private FlightState state = FlightState.Grounded;
         private Ped horse;
-        private Vector3 position;
-        private Vector3 velocity;
+        private float flyZ;
+        private float verticalSpeed;
         private float standingHeight;
+        private int takeoffUntil;
         private int landingStartedAt;
         private int stillSince;
         private int nextLogTime;
@@ -49,11 +69,28 @@ namespace AIPlayground
         public FlyingHorse()
         {
             KeyDown += OnKeyDown;
+            KeyUp += (sender, e) => heldKeys.Remove(e.KeyCode);
         }
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            if (!IsEnabled || e.KeyCode != FlyKey)
+            heldKeys.Add(e.KeyCode);
+
+            if (!IsEnabled)
+            {
+                return;
+            }
+
+            if (e.KeyCode == DescendSlowerKey || e.KeyCode == DescendFasterKey)
+            {
+                float step = e.KeyCode == DescendFasterKey ? 0.5f : -0.5f;
+                descendSpeed = Math.Max(0.5f, descendSpeed + step);
+                Screen.DisplaySubtitle($"Descend speed: {descendSpeed:F1} m/s");
+                Log.Write($"Descend speed -> {descendSpeed:F1}");
+                return;
+            }
+
+            if (e.KeyCode != FlyKey)
             {
                 return;
             }
@@ -108,7 +145,7 @@ namespace AIPlayground
             // Scripts reloaded mid-flight or mid-landing: put everything back to normal.
             if (state != FlightState.Grounded && horse != null)
             {
-                ENTITY.FREEZE_ENTITY_POSITION(horse.Handle, false);
+                ENTITY.SET_ENTITY_HAS_GRAVITY(horse.Handle, true);
                 SetProtection(false);
             }
             state = FlightState.Grounded;
@@ -125,21 +162,21 @@ namespace AIPlayground
 
             horse = player.CurrentMount;
             standingHeight = horse.HeightAboveGround;
-            position = horse.Position + new Vector3(0f, 0f, TakeoffLift);
-            velocity = Vector3.Zero;
+            flyZ = horse.Position.Z;
+            verticalSpeed = RiseSpeed;
+            takeoffUntil = Environment.TickCount + TakeoffMs;
 
             SetProtection(true);
-            ENTITY.FREEZE_ENTITY_POSITION(horse.Handle, true);
+            ENTITY.SET_ENTITY_HAS_GRAVITY(horse.Handle, false);
             state = FlightState.Flying;
 
             Screen.DisplaySubtitle("Taking off");
-            Log.Write($"Takeoff at {horse.Position}, standing height {standingHeight:F2}, cam dir {GameplayCamera.Direction}");
+            Log.Write($"Takeoff at {horse.Position}, standing height {standingHeight:F2}");
         }
 
         private void Land(string reason)
         {
-            ENTITY.FREEZE_ENTITY_POSITION(horse.Handle, false);
-            horse.Velocity = velocity;
+            ENTITY.SET_ENTITY_HAS_GRAVITY(horse.Handle, true);
 
             state = FlightState.Landing;
             landingStartedAt = Environment.TickCount;
@@ -151,61 +188,61 @@ namespace AIPlayground
 
         private void Fly()
         {
-            // Space climbs instead of making the horse jump.
+            // Space rises instead of making the horse jump.
             Game.DisableControlThisFrame(eInputType.HorseJump);
 
+            int now = Environment.TickCount;
             float dt = Math.Min(Game.FrameTime, 0.1f);
-            float forward = Game.GetControlNormal(eInputType.HorseMoveUpOnly) - Game.GetControlNormal(eInputType.HorseMoveDownOnly);
-            bool sprint = Game.IsControlPressed(eInputType.HorseSprint);
-            bool climb = Game.IsDisabledControlPressed(eInputType.HorseJump);
+            bool rise = now < takeoffUntil || heldKeys.Contains(Keys.Space) || Game.IsDisabledControlPressed(eInputType.HorseJump);
+            bool descend = heldKeys.Contains(DescendKey);
+            Vector3 position = horse.Position;
+            Vector3 velocity = horse.Velocity;
+            float height = horse.HeightAboveGround;
 
-            float speed = sprint ? SprintSpeed : CruiseSpeed;
-            Vector3 target = GameplayCamera.Direction * (forward * speed);
-            if (climb)
+            float target = 0f;
+            if (rise && !descend)
             {
-                target = target + new Vector3(0f, 0f, ClimbSpeed);
+                target = RiseSpeed;
+            }
+            else if (descend && !rise)
+            {
+                target = -descendSpeed;
             }
 
-            velocity = velocity + (target - velocity) * Math.Min(1f, Acceleration * dt);
-            Vector3 next = position + velocity * dt;
+            verticalSpeed = verticalSpeed + (target - verticalSpeed) * Math.Min(1f, VerticalAcceleration * dt);
+            flyZ += verticalSpeed * dt;
 
-            // Keep above the ground: work out the ground's Z under the horse from its height above it.
-            float height = horse.HeightAboveGround;
+            // Stay just above the ground. The ground's height comes from how high the horse is above it right now.
             float minZ = position.Z - height + standingHeight + GroundClearance;
-            if (next.Z < minZ)
+            if (flyZ < minZ)
             {
-                next = new Vector3(next.X, next.Y, minZ);
-                if (velocity.Z < 0f)
+                flyZ = minZ;
+                if (verticalSpeed < 0f)
                 {
-                    velocity = new Vector3(velocity.X, velocity.Y, 0f);
+                    verticalSpeed = 0f;
                 }
             }
 
-            position = next;
-            ENTITY.SET_ENTITY_COORDS_NO_OFFSET(horse.Handle, position, false, false, false);
-            // Face where the camera looks. Worked out from the camera's direction rather than its rotation,
-            // which pointed the horse backwards. Skipped when looking nearly straight up or down.
-            Vector3 look = GameplayCamera.Direction;
-            float heading = horse.Heading;
-            if (look.X * look.X + look.Y * look.Y > 0.01f)
-            {
-                heading = HeadingFromDirection(look);
-                horse.Heading = heading;
-            }
+            // The horse's riding moved it horizontally since last frame; keep that and set only the height.
+            Place(new Vector3(position.X, position.Y, flyZ), velocity);
 
-            if (Environment.TickCount > nextLogTime)
+            if (now > nextLogTime)
             {
-                nextLogTime = Environment.TickCount + 1000;
-                Log.Write($"Flying: pos {position}, vel {velocity}, height {height:F1}, forward {forward:F2}, sprint {sprint}, climb {climb}, dt {dt:F3}");
-                Log.Write($"Facing: set heading {heading:F0}, horse reports {horse.Heading:F0}, horse forward {horse.ForwardVector}, cam dir {look}, cam rot Z {GameplayCamera.Rotation.Z:F0}");
+                nextLogTime = now + 1000;
+                Log.Write($"Flying: pos {position}, fly Z {flyZ:F1}, vel {velocity}, vertical {verticalSpeed:F1} (target {target:F1}), height {height:F1}, rise {rise}, descend {descend} at {descendSpeed:F1}, inWater {horse.IsInWater}, inAir {horse.IsInAir}");
             }
         }
 
-        // The game's heading is degrees counterclockwise from north (+Y): heading 0 faces +Y, 90 faces -X.
-        private static float HeadingFromDirection(Vector3 direction)
+        // Places the horse, keeping its horizontal speed and zeroing its vertical speed so the game never sees it
+        // moving down. V2 names the native's three flags xAxis/yAxis/zAxis; they behave like GTA V's
+        // keepTasks/keepIK/doWarp. Tested in-game:
+        //   keep tasks, no IK, no warp  -> faces forward and never falls (used)
+        //   keep tasks, keep IK         -> faces forward but falls mid-descent
+        //   no tasks                    -> never falls, but the horse is drawn facing opposite its rider
+        private void Place(Vector3 at, Vector3 velocity)
         {
-            float degrees = (float)(Math.Atan2(-direction.X, direction.Y) * 180.0 / Math.PI);
-            return degrees < 0f ? degrees + 360f : degrees;
+            ENTITY.SET_ENTITY_COORDS_NO_OFFSET(horse.Handle, at, true, false, false);
+            horse.Velocity = new Vector3(velocity.X, velocity.Y, 0f);
         }
 
         private void CheckLanded()

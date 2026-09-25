@@ -1,4 +1,4 @@
-# AI Playground
+﻿# AI Playground
 
 RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2. Each mod is its own project and DLL.
 
@@ -16,11 +16,11 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2. Each mod is its ow
 | Mod | How to use it once it's on |
 |---|---|
 | **DynamiteGun** | Every bullet explodes like dynamite where it lands (skips hits within 5 m of you). |
-| **FlyingHorse** | On a horse, `F7` takes off or lands. Flies where the camera looks: `W`/`S` forward/back, `Shift` faster, `Space` climb, no input hovers. Stays above the ground but passes through buildings and trees. Rider and horse are invincible until touching down. |
+| **FlyingHorse** | On a horse, `F7` takes off or lands. Ride as normal in the air (`W` walk, `Shift` faster, `A`/`D` steer); `Space` rises, `C` descends, otherwise it holds altitude. Rider and horse are invincible until touching down. |
 
 ## Keys
 
-Rockstar doesn't publish an official list; the in-game Settings → Controls → Key Bindings menu is the source of truth. Default PC bindings on function keys, from community lists and the Script Hook readme:
+Rockstar doesn't publish an official list; the in-game Settings â†’ Controls â†’ Key Bindings menu is the source of truth. Default PC bindings on function keys, from community lists and the Script Hook readme:
 
 | Key | Used by |
 |---|---|
@@ -38,11 +38,11 @@ Free for new mods: `F2`, `F3`, `F10`, `F11`.
 
 ## Layout
 
-- `Mods/<Name>/` — one folder per mod. Builds to `<Name>.dll` and is copied into the game's `scripts\` folder.
-- `Core/ModMenu/` — the F9 mod menu. Always loaded.
-- `Common/` — shared code compiled into every DLL, so each one stands alone: `ModScript` (the mod base class), `ModRegistry` (the list of loaded mods the menu reads), `ModSettings` (saved on/off state), `Log`, `Natives`.
-- `Directory.Build.props` — shared settings: game path (`RDR2Dir`), .NET Framework 4.8, x64, API reference.
-- `Directory.Build.targets` — copies each built DLL into the game folder.
+- `Mods/<Name>/` â€” one folder per mod. Builds to `<Name>.dll` and is copied into the game's `scripts\` folder.
+- `Core/ModMenu/` â€” the F9 mod menu. Always loaded.
+- `Common/` â€” shared code compiled into every DLL, so each one stands alone: `ModScript` (the mod base class), `ModRegistry` (the list of loaded mods the menu reads), `ModSettings` (saved on/off state), `Log`, `Natives`.
+- `Directory.Build.props` â€” shared settings: game path (`RDR2Dir`), .NET Framework 4.8, x64, API reference.
+- `Directory.Build.targets` â€” copies each built DLL into the game folder.
 
 ## Adding a mod
 
@@ -55,12 +55,12 @@ Free for new mods: `F2`, `F3`, `F10`, `F11`.
 
 Every mod derives from `ModScript`, which registers it with the mod menu, turns it on and off from there (with an `ON`/`OFF` subtitle and a log entry), and saves its state. A mod fills in:
 
-- `Description` — one line shown in the menu and in the `ON` subtitle (required).
-- `OnEnabledTick()` — per-frame work while on (required).
-- `OnEnable()` — setup when turned on; return `false` to refuse.
-- `OnDisable()` — cleanup when turned off.
-- `OnDisabledTick()` — anything that must keep running while off (e.g. finishing a landing).
-- `OnAborted()` — undo lasting effects when scripts reload; defaults to `OnDisable()` if on.
+- `Description` â€” one line shown in the menu and in the `ON` subtitle (required).
+- `OnEnabledTick()` â€” per-frame work while on (required).
+- `OnEnable()` â€” setup when turned on; return `false` to refuse.
+- `OnDisable()` â€” cleanup when turned off.
+- `OnDisabledTick()` â€” anything that must keep running while off (e.g. finishing a landing).
+- `OnAborted()` â€” undo lasting effects when scripts reload; defaults to `OnDisable()` if on.
 
 A mod's own hotkeys should only do something while `IsEnabled`. A mod can call `Disable("reason")` to switch itself off.
 
