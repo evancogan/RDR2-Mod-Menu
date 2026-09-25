@@ -1,23 +1,28 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using RegistryEntry = System.Tuple<string, string, System.Func<bool>, System.Action>;
 
 namespace AIPlayground
 {
-    // The list of loaded mods that the mod menu shows.
+    // The list of loaded mods and actions that the mod menu shows.
     //
     // Each mod is its own DLL with its own copy of Common, so a normal static list wouldn't be shared.
     // All scripts run in the same AppDomain, though, so the list is stored there using only framework
-    // types (name, description, is-enabled check, toggle request), which every DLL sees as the same types.
+    // types (name, description, is-enabled check, activate request), which every DLL sees as the same types.
+    // Actions (one-shot buttons like refilling needs) register with no is-enabled check.
     public static class ModRegistry
     {
         private const string DataKey = "AIPlayground.ModRegistry";
 
-        // Returns a token to pass to Unregister when the mod unloads.
-        public static object Register(string name, string description, Func<bool> isEnabled, Action requestToggle)
+        // "FlyingHorse" -> "Flying Horse"
+        public static string DisplayNameOf(Type type) => Regex.Replace(type.Name, "(?<=[a-z])(?=[A-Z])", " ");
+
+        // Returns a token to pass to Unregister when the mod unloads. Pass null for isEnabled to register an action.
+        public static object Register(string name, string description, Func<bool> isEnabled, Action activate)
         {
-            var entry = Tuple.Create(name, description, isEnabled, requestToggle);
+            var entry = Tuple.Create(name, description, isEnabled, activate);
             lock (SyncRoot)
             {
                 GetList().Add(entry);
@@ -69,9 +74,12 @@ namespace AIPlayground
 
         public string Description => entry.Item2;
 
-        public bool IsEnabled => entry.Item3();
+        // A one-shot button rather than an on/off mod.
+        public bool IsAction => entry.Item3 == null;
 
-        // The mod flips itself on its next frame, so the change happens on its own script thread.
-        public void RequestToggle() => entry.Item4();
+        public bool IsEnabled => entry.Item3 != null && entry.Item3();
+
+        // Toggles a mod or runs an action. The mod acts on its next frame, on its own script thread.
+        public void Activate() => entry.Item4();
     }
 }

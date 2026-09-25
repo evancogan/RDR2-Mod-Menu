@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text.RegularExpressions;
 using RDR2;
 using Screen = RDR2.UI.Screen;
 
@@ -19,8 +18,7 @@ namespace AIPlayground
         // One line shown in the mod menu and in the subtitle when the mod is turned on.
         protected abstract string Description { get; }
 
-        // "FlyingHorse" -> "Flying Horse"
-        protected string DisplayName => Regex.Replace(GetType().Name, "(?<=[a-z])(?=[A-Z])", " ");
+        protected string DisplayName => ModRegistry.DisplayNameOf(GetType());
 
         private string SettingsKey => GetType().Name;
 

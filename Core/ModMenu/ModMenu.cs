@@ -9,8 +9,8 @@ using Screen = RDR2.UI.Screen;
 
 namespace AIPlayground
 {
-    // F9 opens a menu listing every loaded AI Playground mod. Up/Down selects, Enter toggles, F9 or Backspace closes.
-    // A few seconds after loading it also announces how many mods loaded, as a smoke test.
+    // F9 opens a menu listing every loaded AI Playground mod and action. Up/Down selects, Enter toggles a mod or
+    // uses an action, F9 or Backspace closes. A few seconds after loading it also announces what loaded, as a smoke test.
     public class ModMenu : Script
     {
         private const Keys MenuKey = Keys.F9;
@@ -67,7 +67,7 @@ namespace AIPlayground
                 case Keys.Enter:
                     if (selected < mods.Count)
                     {
-                        mods[selected].RequestToggle();
+                        mods[selected].Activate();
                     }
                     break;
                 case Keys.Back:
@@ -82,9 +82,11 @@ namespace AIPlayground
             {
                 announced = true;
                 List<ModInfo> all = ModRegistry.GetAll();
+                int toggles = all.Count(m => !m.IsAction);
                 int on = all.Count(m => m.IsEnabled);
-                Screen.DisplaySubtitle($"AI Playground: {all.Count} mods loaded, {on} on. F9 for menu.");
-                Log.Write($"Loaded mods: {string.Join(", ", all.Select(m => $"{m.Name} ({(m.IsEnabled ? "on" : "off")})"))}");
+                int actions = all.Count(m => m.IsAction);
+                Screen.DisplaySubtitle($"AI Playground: {toggles} mods loaded ({on} on), {actions} actions. F9 for menu.");
+                Log.Write($"Loaded: {string.Join(", ", all.Select(m => $"{m.Name} ({(m.IsAction ? "action" : m.IsEnabled ? "on" : "off")})"))}");
             }
 
             if (!open)
@@ -133,7 +135,11 @@ namespace AIPlayground
                 }
 
                 DrawText(mod.Name, Left + TextInset, y, TextScale, 255, 255, 255);
-                if (mod.IsEnabled)
+                if (mod.IsAction)
+                {
+                    DrawText("USE", Left + Width - 0.04f, y, TextScale, 230, 190, 90);
+                }
+                else if (mod.IsEnabled)
                 {
                     DrawText("ON", Left + Width - 0.04f, y, TextScale, 90, 220, 90);
                 }
@@ -155,7 +161,7 @@ namespace AIPlayground
             }
 
             DrawRow(y, 0, 0, 0, 190, SmallRowHeight + 0.006f);
-            DrawText("Up/Down select    Enter toggle    F9 close", Left + TextInset, y + 0.004f, SmallTextScale, 180, 180, 180);
+            DrawText("Up/Down select    Enter toggle/use    F9 close", Left + TextInset, y + 0.004f, SmallTextScale, 180, 180, 180);
         }
 
         private static void DrawRow(float top, int r, int g, int b, int a, float height = RowHeight)

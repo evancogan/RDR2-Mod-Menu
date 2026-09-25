@@ -5,6 +5,8 @@
   <Folder Name="/Mods/">
     <Project Path="Mods/DynamiteGun/DynamiteGun.csproj" />
     <Project Path="Mods/FlyingHorse/FlyingHorse.csproj" />
+    <Project Path="Mods/RefillNeeds/RefillNeeds.csproj" />
+    <Project Path="Mods/SuperSpeed/SuperSpeed.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
