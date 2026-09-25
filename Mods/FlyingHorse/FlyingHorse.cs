@@ -22,6 +22,8 @@ namespace AIPlayground
     //   and keeping IK let the falling state start mid-descent.
     public class FlyingHorse : ModScript
     {
+        protected override string Category => "Horse";
+
         protected override string Description => "On a horse, press F7 to take off or land. Ride as normal (W walk, Shift faster, A/D steer); Space rises, Q descends.";
 
         private const Keys FlyKey = Keys.F7;

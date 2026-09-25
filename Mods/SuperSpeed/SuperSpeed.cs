@@ -16,6 +16,8 @@ namespace AIPlayground
     // still clip into walls. Jumps launch him much higher and keep his boosted speed through the air.
     public class SuperSpeed : ModScript
     {
+        protected override string Category => "Player";
+
         protected override string Description => "Arthur moves 5x faster on foot, jumps much higher, and can run on water (he sinks when he stops). He won't ragdoll while it's on.";
 
         private const float SpeedMultiplier = 5f;

@@ -3,7 +3,7 @@ using RDR2.Native;
 
 namespace AIPlayground
 {
-    // A scrolling row directly on the Actions page, "Body Type  < Skinny | Medium | Fat >".
+    // Player section: one scrolling row, "Body Type  < Skinny | Medium | Fat >".
     //
     // Uses the game's own body-weight system: equipping one of the body-weight outfits from pedattributes.ymt
     // (eBodyWeightOutfit) with _EQUIP_META_PED_OUTFIT, then refreshing his components and variation. That's what
@@ -13,6 +13,8 @@ namespace AIPlayground
     public class BodyType : ModChoice
     {
         protected override string DisplayName => "Body Type";
+
+        protected override string Category => "Player";
 
         protected override string Description => "Left/Right: skinny, medium or fat. Uses the game's own weight system, so his clothes refit.";
 

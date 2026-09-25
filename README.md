@@ -4,32 +4,27 @@ RDR2 mods for experimenting, built on ScriptHookRDR2 .NET V2, with an in-game me
 
 ## In-game
 
-- `F9` opens the **mod menu**. It doesn't turn anything on by itself: inside the menu, `Up`/`Down` selects, `Enter` turns a mod on or off, and `F9` closes the menu.
-- The last row, **Actions >**, opens the Actions page: every button and setting in one list, grouped under category headings (NEEDS, CRIME), with uncategorized ones like Body Type on their own. No folders. `Enter` uses a button, `Left`/`Right` change a scrolling setting, `Backspace` goes back.
+- `F9` opens the **mod menu**: a list of sections (Player, Needs, Weapons, Horse, Crime), each showing how many of its mods are on. `Up`/`Down` selects, `Enter` opens a section, `F9` closes.
+- A section holds everything on that topic, whatever kind it is: on/off mods (`Enter` toggles, shows ON/OFF), one-press buttons (`Enter` uses, shows USE) and scrolling settings (`Left`/`Right` change, shows `< value >`). `Backspace` goes back.
 - Every mod starts **off** until you turn it on in the menu. Turning one on shows `<Mod Name>: ON` with a one-line how-to.
 - A few seconds after scripts load, a subtitle says how many mods and actions loaded and how many mods are on. That's the smoke test that everything loaded.
 - `Insert` reloads scripts after a rebuild. Mods come back on or off the way you left them.
 - `F8` opens the .NET console.
 - Debug output from every mod goes to `AIPlayground.log` next to `RDR2.exe`.
 
-## Mods
+## Menu sections
 
-| Mod | How to use it once it's on |
-|---|---|
-| **Dynamite Gun** | Every bullet explodes like dynamite where it lands (skips hits within 5 m of you). |
-| **Flying Horse** | On a horse, `F7` takes off or lands. Ride as normal in the air (`W` walk, `Shift` faster, `A`/`D` steer); `Space` rises, `Q` descends, otherwise it holds altitude. Rider and horse are invincible until touching down. |
-| **Keep Needs Filled** | Keeps Arthur's health, stamina and Dead Eye full, bars and cores. |
-| **Super Speed** | Arthur moves 5× faster on foot; walk, run and sprint as normal. Follows the ground, jumps about 10 m high keeping his speed (invincible until he lands), runs across water (sinks when he stops), and swims like a jetski (about 15 m/s, 25 m/s sprinting). He won't ragdoll while it's on. |
-
-## Actions
-
-| Category | Action | What it does |
-|---|---|---|
-| Needs | **Refill All Needs** | Fills health, stamina and Dead Eye, bars and cores, once. |
-| Needs | **Refill Ammo** | Fills ammo for every gun and bow, tops up special ammo you already carry, and reloads your gun. Skips throwables. |
-| Needs | **Refill Dead Eye / Health / Stamina** | Fills that one bar and its core. |
-| *(Actions page)* | **Body Type** `< Skinny / Medium / Fat >` | `Left`/`Right` change it. Uses the game's own body-weight outfits (the ones cutscenes switch between), so clothes refit. |
-| Crime | **Clear Wanted Level** | Ends the law's current pursuit. Your bounty stays as it is. |
+| Section | Entry | Kind | What it does |
+|---|---|---|---|
+| Player | **Super Speed** | on/off | Arthur moves 5× faster on foot; walk, run and sprint as normal. Follows the ground, jumps about 10 m high keeping his speed (invincible until he lands), runs across water (sinks when he stops), and swims like a jetski (about 15 m/s, 25 m/s sprinting). He won't ragdoll while it's on. |
+| Player | **Body Type** `< Skinny / Medium / Fat >` | setting | Uses the game's own body-weight outfits (the ones cutscenes switch between), so clothes refit. |
+| Needs | **Keep Needs Filled** | on/off | Keeps health, stamina and Dead Eye full, bars and cores. |
+| Needs | **Refill All Needs** | button | Fills health, stamina and Dead Eye, bars and cores, once. |
+| Needs | **Refill Dead Eye / Health / Stamina** | button | Fills that one bar and its core. |
+| Weapons | **Dynamite Gun** | on/off | Every bullet explodes like dynamite where it lands (skips hits within 5 m of you). |
+| Weapons | **Refill Ammo** | button | Fills ammo for every gun and bow, tops up special ammo you already carry, and reloads your gun. Skips throwables. |
+| Horse | **Flying Horse** | on/off | On a horse, `F7` takes off or lands. Ride as normal in the air (`W` walk, `Shift` faster, `A`/`D` steer); `Space` rises, `Q` descends, otherwise it holds altitude. Rider and horse are invincible until touching down. |
+| Crime | **Clear Wanted Level** | button | Ends the law's current pursuit. Your bounty stays as it is. |
 
 ## Keys
 
@@ -69,6 +64,7 @@ Free for new mods: `F2`, `F3`, `F10`, `F11`. While riding, `Ctrl` (stop), `C` (t
 Every mod derives from `ModScript`, which registers it with the mod menu, turns it on and off from there (with an `ON`/`OFF` subtitle and a log entry), and saves its state. A mod fills in:
 
 - `Description` — one line shown in the menu and in the `ON` subtitle (required).
+- `Category` — the menu section it's listed in, e.g. `"Player"` (required).
 - `OnEnabledTick()` — per-frame work while on (required).
 - `OnEnable()` — setup when turned on; return `false` to refuse.
 - `OnDisable()` — cleanup when turned off.
@@ -79,13 +75,15 @@ A mod's own hotkeys should only do something while `IsEnabled`. A mod can call `
 
 On/off states are saved to `AIPlayground.ini` next to `RDR2.exe` (`ModName=on|off`, one per line). You can edit it by hand; delete a line to reset that mod to off.
 
-### Actions
+### Buttons and settings
 
-For a one-press button instead of an on/off mod, derive from `ModAction`. It shows under its `Category` in the Actions submenu as `USE`; pressing `Enter` runs it once. Fill in `Category`, `Description` and `Run()`, which does the work and returns the subtitle to show.
+For a one-press button, derive from `ModAction`. It shows as `USE`; pressing `Enter` runs it once. Fill in `Category`, `Description` and `Run()`, which does the work and returns the subtitle to show.
 
-For a scrolling setting, derive from `ModChoice`: fill in `Description`, `Choices` and `Apply(index)`, and optionally `Category` and `InitialChoice`.
+For a scrolling setting, derive from `ModChoice`: fill in `Category`, `Description`, `Choices` and `Apply(index)`, and optionally `InitialChoice`. `Left`/`Right` move through the choices and apply each one straight away.
 
-Actions and settings with a `Category` are grouped under that heading on the Actions page; ones whose `Category` is null sit on their own. The order of groups is set by `ActionsOrder` in `ModMenu.cs`. `Left`/`Right` move through the choices and apply each one straight away.
+### Sections
+
+Every entry's `Category` is its menu section; mods, buttons and settings on the same topic share one. Within a section, on/off mods come first, then settings, then buttons. The order of sections is set by `SectionOrder` in `ModMenu.cs`; new sections follow alphabetically.
 
 ## Loading and unloading mod DLLs (developer tool)
 

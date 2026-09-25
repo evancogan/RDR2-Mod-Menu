@@ -1,6 +1,6 @@
 namespace AIPlayground
 {
-    // Actions > Needs buttons for refilling needs. Each logs the needs before and after, to confirm it took effect.
+    // Needs section buttons for refilling needs. Each logs the needs before and after, to confirm it took effect.
 
     public class RefillAllNeeds : ModAction
     {

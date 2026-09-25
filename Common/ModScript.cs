@@ -6,7 +6,8 @@ namespace AIPlayground
 {
     // Base class for every AI Playground mod.
     //
-    // Mods are turned on and off from the mod menu (F9), start off until you enable them there, and remember
+    // Mods are listed in their Category's section of the mod menu (F9) and turned on and off there. They start off
+    // until you enable them, and remember
     // their on/off state in AIPlayground.ini across Insert reloads and game restarts. Turning a mod on or off
     // shows "<Mod Name>: ON/OFF" as a subtitle and logs the change.
     //
@@ -17,6 +18,9 @@ namespace AIPlayground
     {
         // One line shown in the mod menu and in the subtitle when the mod is turned on.
         protected abstract string Description { get; }
+
+        // The menu section it's listed in, e.g. "Player" or "Weapons".
+        protected abstract string Category { get; }
 
         protected string DisplayName => ModRegistry.DisplayNameOf(GetType());
 
@@ -34,7 +38,7 @@ namespace AIPlayground
             bool? saved = ModSettings.GetEnabled(SettingsKey);
             startEnabled = saved ?? false;
 
-            registration = ModRegistry.RegisterToggle(DisplayName, Description, () => IsEnabled, () => toggleRequested = true);
+            registration = ModRegistry.RegisterToggle(DisplayName, Description, Category, () => IsEnabled, () => toggleRequested = true);
 
             Tick += OnTickInternal;
             Aborted += (sender, e) =>

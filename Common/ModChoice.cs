@@ -4,15 +4,15 @@ using Screen = RDR2.UI.Screen;
 
 namespace AIPlayground
 {
-    // Base class for a scrolling row in the mod menu's Actions submenu, e.g. "Body Type   < Medium >".
+    // Base class for a scrolling row in the mod menu, listed in its Category's section, e.g. "Body Type   < Medium >".
     // Left/Right move through Choices and apply the new one straight away.
     public abstract class ModChoice : Script
     {
         // One line shown in the mod menu.
         protected abstract string Description { get; }
 
-        // The Actions category folder it's listed in, or null to show it directly on the Actions page.
-        protected virtual string Category => null;
+        // The menu section it's listed in, e.g. "Player".
+        protected abstract string Category { get; }
 
         protected abstract string[] Choices { get; }
 
@@ -33,7 +33,7 @@ namespace AIPlayground
             registration = ModRegistry.RegisterChoice(DisplayName, Description, Category, Choices, () => Current, index => requested = index);
             Tick += OnTickInternal;
             Aborted += (sender, e) => ModRegistry.Unregister(registration);
-            Log.Write($"{DisplayName} loaded (choice in {Category ?? "Actions"})");
+            Log.Write($"{DisplayName} loaded (choice in {Category})");
         }
 
         // Applies the choice at index. Returns the subtitle to show afterwards.

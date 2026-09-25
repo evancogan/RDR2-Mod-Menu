@@ -32,17 +32,17 @@ namespace AIPlayground
         // "FlyingHorse" -> "Flying Horse"
         public static string DisplayNameOf(Type type) => Regex.Replace(type.Name, "(?<=[a-z])(?=[A-Z])", " ");
 
-        // An on/off mod on the main menu page.
-        public static object RegisterToggle(string name, string description, Func<bool> isEnabled, Action toggle)
+        // An on/off mod, listed in its menu section.
+        public static object RegisterToggle(string name, string description, string category, Func<bool> isEnabled, Action toggle)
         {
             return Register(new RegistryEntry
             {
                 [NameKey] = name, [DescriptionKey] = description, [KindKey] = ToggleKind,
-                [IsEnabledKey] = isEnabled, [ActivateKey] = toggle,
+                [CategoryKey] = category, [IsEnabledKey] = isEnabled, [ActivateKey] = toggle,
             });
         }
 
-        // A one-press button in an Actions category.
+        // A one-press button, listed in its menu section.
         public static object RegisterAction(string name, string description, string category, Action run)
         {
             return Register(new RegistryEntry
@@ -52,7 +52,7 @@ namespace AIPlayground
             });
         }
 
-        // A row in an Actions category that scrolls through choices with Left/Right.
+        // A row that scrolls through choices with Left/Right, listed in its menu section.
         public static object RegisterChoice(string name, string description, string category, string[] choices, Func<int> current, Action<int> choose)
         {
             return Register(new RegistryEntry
@@ -116,11 +116,11 @@ namespace AIPlayground
 
         public string Description => (string)entry[ModRegistry.DescriptionKey];
 
-        // Toggles live on the main page; actions and choices live in Actions categories.
         public bool IsToggle => Kind == ModRegistry.ToggleKind;
 
         public bool IsChoice => Kind == ModRegistry.ChoiceKind;
 
+        // The menu section it's listed in, e.g. "Needs".
         public string Category => entry.TryGetValue(ModRegistry.CategoryKey, out object category) ? (string)category : null;
 
         public bool IsEnabled => IsToggle && ((Func<bool>)entry[ModRegistry.IsEnabledKey])();

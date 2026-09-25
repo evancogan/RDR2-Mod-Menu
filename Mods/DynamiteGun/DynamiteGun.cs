@@ -7,6 +7,8 @@ namespace AIPlayground
     // Every bullet the player fires explodes like dynamite where it lands.
     public class DynamiteGun : ModScript
     {
+        protected override string Category => "Weapons";
+
         protected override string Description => "Every bullet explodes like dynamite where it lands (not within 5 m of you).";
 
         // Don't blow up impacts this close to the player, so point-blank shots aren't suicide.

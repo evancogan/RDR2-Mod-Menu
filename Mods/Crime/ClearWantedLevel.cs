@@ -3,7 +3,7 @@ using RDR2.Native;
 
 namespace AIPlayground
 {
-    // Actions > Crime button: ends the law's current pursuit of Arthur. His bounty is left as is.
+    // Crime section button: ends the law's current pursuit of Arthur. His bounty is left as is.
     //
     // CLEAR_PLAYER_WANTED_LEVEL and SET_PLAYER_WANTED_LEVEL do nothing in RDR2 (per alloc8or's rdr3-nativedb), so this
     // clears the wanted score and force-clears the pursuit instead.
