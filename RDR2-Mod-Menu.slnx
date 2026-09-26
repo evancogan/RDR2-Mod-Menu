@@ -9,6 +9,7 @@
     <Project Path="Mods/FlyingHorse/FlyingHorse.csproj" />
     <Project Path="Mods/Money/Money.csproj" />
     <Project Path="Mods/Needs/Needs.csproj" />
+    <Project Path="Mods/Speech/Speech.csproj" />
     <Project Path="Mods/SuperSpeed/SuperSpeed.csproj" />
     <Project Path="Mods/Weapons/Weapons.csproj" />
   </Folder>

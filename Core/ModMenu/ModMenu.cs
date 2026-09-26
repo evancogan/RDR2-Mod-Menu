@@ -20,7 +20,7 @@ namespace RDR2ModMenu
         private const int AnnounceDelayMs = 3000;
 
         // Sections in this order first; any others follow alphabetically.
-        private static readonly string[] SectionOrder = { "Player", "Needs", "Weapons", "Horse", "Crime" };
+        private static readonly string[] SectionOrder = { "Player", "Needs", "Weapons", "Horse", "Horse Needs", "Crime" };
 
         // Anything registered without a section ends up here.
         private const string OtherSection = "Other";

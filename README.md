@@ -18,7 +18,7 @@ Setting an `RDR2Dir` environment variable does the same thing. If the build can'
 
 ## Using it in-game
 
-Press `F9` to open the menu. You'll see a list of sections (Player, Needs, Weapons, Horse, Crime), and each one shows how many of its mods are currently on. Use `Up` and `Down` to move, `Enter` to open a section, and `F9` again to close the menu.
+Press `F9` to open the menu. You'll see a list of sections (Player, Needs, Weapons, Horse, Horse Needs, Crime, Speech), and each one shows how many of its mods are currently on. Use `Up` and `Down` to move, `Enter` to open a section, and `F9` again to close the menu.
 
 Inside a section you'll find three kinds of entries:
 
@@ -48,10 +48,13 @@ A few other things worth knowing:
 | Weapons | **Dynamite Gun** | mod | Every bullet explodes like dynamite where it lands. Hits closer than 5 m to you are skipped so you don't blow yourself up. |
 | Weapons | **Clean Weapons** | button | Cleans every weapon Arthur is carrying: wear, dirt, soot and damage. Weapons stowed on the horse aren't included, and there's no way to remove rust yet. |
 | Weapons | **Refill Ammo** | button | Fills ammo for every gun and bow, tops up any special ammo you're already carrying, and reloads the gun in your hand. Throwables are left alone. |
-| Horse | **Flying Horse** | mod | On a horse, press `F7` to take off or land. In the air you ride like normal (`W` to walk, `Shift` to go faster, `A` and `D` to steer). `Space` climbs, `Q` descends, and if you do neither the horse holds its height. You and the horse can't get hurt until you're back on the ground. |
+| Horse | **Flying Horse** | mod | On a horse, press `F7` to take off or land. In the air you ride like normal (`W` to walk, `Shift` to go faster, `A` and `D` to steer). `Space` climbs, `Q` descends, and if you do neither the horse holds its height. The higher you are above the ground, the faster you fly, up to five times normal at 150 m. Descending is faster the higher you are too, and slows down as the ground gets close. You and the horse can't get hurt until you're back on the ground. |
+| Horse Needs | **Refill Horse Health / Stamina** `< Once / Always >` | setting | Like Arthur's refill rows, for the horse you're riding (or your active horse if you're on foot). On Once, press `Enter` to fill that bar and its core right now. On Always, it stays full. |
 | Crime | **Never Wanted** | mod | The law never comes after you while it's on: witnesses don't report you and lawmen aren't sent. Bounties aren't touched. |
 | Crime | **Clear Bounty** | button | Wipes your bounty and the law's record of your past crimes. |
 | Crime | **Clear Wanted Level** | button | Ends the law's current chase. Your bounty doesn't change. |
+| Speech | **Speech Logger** | mod | A diagnostic. Logs every line Arthur and people within 15 m of him speak, numbered, with whether it was ambient speech (the kind that can be blocked), how long it lasted and who Arthur was focused on. Arthur's latest line number is shown at the top right. |
+| Speech | **Mark Goodbye** | button | Use right after Arthur says goodbye. Marks his latest line in the speech log so it's easy to find. |
 
 ## Keys
 

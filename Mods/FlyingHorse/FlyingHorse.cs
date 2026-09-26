@@ -10,7 +10,8 @@ namespace RDR2ModMenu
 {
     // While enabled, press F7 on a horse to take off or land. In the air the horse rides as normal
     // (W walk, Shift faster, A/D steer, with the game's own animations); this mod only controls height:
-    // Space rises, Q descends, and otherwise the horse holds its altitude.
+    // Space rises, Q descends, and otherwise the horse holds its altitude. The higher it flies above the ground,
+    // the faster it goes, and the faster it descends, slowing as the ground gets close.
     //
     // How height is controlled, and why (all found by testing in-game):
     // - The horse's own riding moves it horizontally. The mod never sets its heading or horizontal speed:
@@ -20,6 +21,7 @@ namespace RDR2ModMenu
     //   Switching between speed and placement also triggered falls.
     // - Placement keeps the horse's tasks but not its IK (see Place): clearing tasks flipped the horse around,
     //   and keeping IK let the falling state start mid-descent.
+    // - Extra forward speed is added the same way, by placing the horse further along the way it's already moving.
     public class FlyingHorse : ModScript
     {
         protected override string Category => "Horse";
@@ -33,10 +35,28 @@ namespace RDR2ModMenu
 
         private const float RiseSpeed = 8f;
 
-        // TEMPORARY: [ and ] adjust the descent speed in-game.
-        private float descendSpeed = 4f;
-        private const Keys DescendSlowerKey = Keys.OemOpenBrackets;
-        private const Keys DescendFasterKey = Keys.OemCloseBrackets;
+        // Descent speed is proportional to the height above the ground, so it slows as the ground gets close:
+        // from 100 m up it drops at 50 m/s, and never slower than MinDescendSpeed or faster than MaxDescendSpeed.
+        private const float MinDescendSpeed = 4f;
+        private const float DescendSpeedPerMeter = 0.5f;
+        private const float MaxDescendSpeed = 50f;
+
+        // Forward speed grows with height: normal up to BoostStartHeight, rising steadily to MaxSpeedMultiplier times
+        // normal at BoostFullHeight and above.
+        private const float BoostStartHeight = 5f;
+        private const float BoostFullHeight = 150f;
+        private const float MaxSpeedMultiplier = 5f;
+
+        // The boost is based on the horse's own riding speed, capped at about a full gallop, in case its measured speed
+        // ever includes the boost itself and would snowball.
+        private const float MaxRidingSpeed = 15f;
+
+        // Below this, which way the horse is moving isn't reliable enough to boost along.
+        private const float MinMovingSpeed = 0.3f;
+
+        // How quickly the speed multiplier follows a change in height, per second, so flying over a cliff edge
+        // doesn't suddenly jolt the speed.
+        private const float BoostSmoothing = 1f;
 
         // How long takeoff rises on its own, in milliseconds.
         private const int TakeoffMs = 400;
@@ -63,6 +83,7 @@ namespace RDR2ModMenu
         private float flyZ;
         private float verticalSpeed;
         private float standingHeight;
+        private float speedMultiplier = 1f;
         private int takeoffUntil;
         private int landingStartedAt;
         private int stillSince;
@@ -80,15 +101,6 @@ namespace RDR2ModMenu
 
             if (!IsEnabled)
             {
-                return;
-            }
-
-            if (e.KeyCode == DescendSlowerKey || e.KeyCode == DescendFasterKey)
-            {
-                float step = e.KeyCode == DescendFasterKey ? 0.5f : -0.5f;
-                descendSpeed = Math.Max(0.5f, descendSpeed + step);
-                Screen.DisplaySubtitle($"Descend speed: {descendSpeed:F1} m/s");
-                Log.Write($"Descend speed -> {descendSpeed:F1}");
                 return;
             }
 
@@ -166,6 +178,7 @@ namespace RDR2ModMenu
             standingHeight = horse.HeightAboveGround;
             flyZ = horse.Position.Z;
             verticalSpeed = RiseSpeed;
+            speedMultiplier = 1f;
             takeoffUntil = Environment.TickCount + TakeoffMs;
 
             SetProtection(true);
@@ -208,7 +221,7 @@ namespace RDR2ModMenu
             }
             else if (descend && !rise)
             {
-                target = -descendSpeed;
+                target = -DescendSpeed(height);
             }
 
             verticalSpeed = verticalSpeed + (target - verticalSpeed) * Math.Min(1f, VerticalAcceleration * dt);
@@ -225,14 +238,37 @@ namespace RDR2ModMenu
                 }
             }
 
-            // The horse's riding moved it horizontally since last frame; keep that and set only the height.
-            Place(new Vector3(position.X, position.Y, flyZ), velocity);
+            // The horse's riding moved it horizontally since last frame; keep that, and add the height boost on top.
+            float targetMultiplier = SpeedMultiplier(height);
+            speedMultiplier += (targetMultiplier - speedMultiplier) * Math.Min(1f, BoostSmoothing * dt);
+            float x = position.X;
+            float y = position.Y;
+            float moving = (float)Math.Sqrt(velocity.X * velocity.X + velocity.Y * velocity.Y);
+            if (moving > MinMovingSpeed)
+            {
+                float extra = Math.Min(moving, MaxRidingSpeed) * (speedMultiplier - 1f) * dt;
+                x += velocity.X / moving * extra;
+                y += velocity.Y / moving * extra;
+            }
+            Place(new Vector3(x, y, flyZ), velocity);
 
             if (now > nextLogTime)
             {
                 nextLogTime = now + 1000;
-                Log.Write($"Flying: pos {position}, fly Z {flyZ:F1}, vel {velocity}, vertical {verticalSpeed:F1} (target {target:F1}), height {height:F1}, rise {rise}, descend {descend} at {descendSpeed:F1}, inWater {horse.IsInWater}, inAir {horse.IsInAir}");
+                Log.Write($"Flying: pos {position}, fly Z {flyZ:F1}, vel {velocity}, vertical {verticalSpeed:F1} (target {target:F1}), height {height:F1}, speed x{speedMultiplier:F1} (target x{targetMultiplier:F1}), rise {rise}, descend {descend} at {DescendSpeed(height):F1}, inWater {horse.IsInWater}, inAir {horse.IsInAir}");
             }
+        }
+
+        private static float DescendSpeed(float height)
+        {
+            return Math.Max(MinDescendSpeed, Math.Min(MaxDescendSpeed, height * DescendSpeedPerMeter));
+        }
+
+        private static float SpeedMultiplier(float height)
+        {
+            float t = (height - BoostStartHeight) / (BoostFullHeight - BoostStartHeight);
+            t = Math.Max(0f, Math.Min(1f, t));
+            return 1f + (MaxSpeedMultiplier - 1f) * t;
         }
 
         // Places the horse, keeping its horizontal speed and zeroing its vertical speed so the game never sees it

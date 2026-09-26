@@ -19,6 +19,9 @@ namespace RDR2ModMenu
 
         protected abstract void Refill();
 
+        // For the log, before and after a refill.
+        protected virtual string Describe() => Needs.Describe();
+
         protected override string Category => "Needs";
 
         protected override string Description => $"Once: press Enter to fill {Need.ToLowerInvariant()} now. Always: keeps it full.";
@@ -36,9 +39,9 @@ namespace RDR2ModMenu
 
         protected override string Use()
         {
-            string before = Needs.Describe();
+            string before = Describe();
             Refill();
-            Log.Write($"Before: {before}. After: {Needs.Describe()}");
+            Log.Write($"Before: {before}. After: {Describe()}");
             return $"{Need} refilled";
         }
 
