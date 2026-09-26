@@ -47,6 +47,14 @@ namespace RDR2ModMenu
             return found;
         }
 
+        // The entity the player is focused on (holding the interact/aim button on it), or 0. The game writes it into
+        // an 8-byte slot, so it gets one.
+        public static unsafe int GetInteractionTarget()
+        {
+            ulong entity = 0;
+            return PLAYER.GET_PLAYER_INTERACTION_TARGET_ENTITY(Game.Player.Handle, (int*)&entity, false, false) ? (int)entity : 0;
+        }
+
         // Height of the water surface at (x, y), probing straight down from 5 m above nearZ against every kind of water.
         // Tested in-game on a river: this finds the surface, while GET_WATER_HEIGHT and GET_WATER_HEIGHT_NO_WAVES
         // never reported any water there.

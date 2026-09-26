@@ -287,7 +287,9 @@ namespace RDR2ModMenu
                 string[] choices = item.Choices;
                 int current = item.CurrentChoice;
                 string value = current >= 0 && current < choices.Length ? choices[current] : "";
-                DrawText($"<  {value}  >", Left + Width - 0.1f, y, TextScale, 230, 190, 90);
+                // Placed so the row's longest choice ends at the panel's edge, keeping "<" still while scrolling.
+                float widest = choices.Length == 0 ? 0f : choices.Max(c => ScreenText.EstimateWidth($"<  {c}  >", TextScale));
+                DrawText($"<  {value}  >", Left + Width - TextInset - widest, y, TextScale, 230, 190, 90);
             }
             else
             {

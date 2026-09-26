@@ -132,7 +132,7 @@ namespace RDR2ModMenu
         // Logs when Arthur's focus target changes and when a conversation starts or stops.
         private void LogConversationChanges(Ped player)
         {
-            int target = TargetHandle();
+            int target = Natives.GetInteractionTarget();
             if (target != lastTarget)
             {
                 Log.Write($"Arthur's focus: {(lastTarget == 0 ? "nobody" : $"ped {lastTarget}")} -> {Target()}");
@@ -154,17 +154,9 @@ namespace RDR2ModMenu
             }
         }
 
-        // The ped Arthur is focused on (holding the interact/aim button on them), or 0.
-        private static unsafe int TargetHandle()
-        {
-            // The game writes the entity into an 8-byte slot, so give it one (see Natives.cs).
-            ulong entity = 0;
-            return PLAYER.GET_PLAYER_INTERACTION_TARGET_ENTITY(Game.Player.Handle, (int*)&entity, false, false) ? (int)entity : 0;
-        }
-
         private string Target()
         {
-            int target = TargetHandle();
+            int target = Natives.GetInteractionTarget();
             if (target == 0)
             {
                 return "nobody";

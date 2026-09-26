@@ -36,6 +36,9 @@ namespace RDR2ModMenu
             Function.Call(BG_DISPLAY_TEXT, (ulong*)varString, x, y);
         }
 
+        // Roughly how wide text is at the given scale, as a fraction of the screen width, erring on the wide side.
+        public static float EstimateWidth(string text, float scale) => text.Length * CharWidthPerScale * scale;
+
         // Splits text into lines that fit within maxWidth (a fraction of the screen width) at the given scale.
         public static List<string> Wrap(string text, float maxWidth, float scale)
         {
