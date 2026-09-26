@@ -54,6 +54,11 @@ namespace RDR2ModMenu
         private const int LaunchWindowMs = 500;
         private const int LandedMs = 300;
 
+        // How recent the last boost must be for a jump to reuse its direction and gait. Moving him by placement
+        // sometimes leaves his measured velocity near zero, and on the jump's first frame he may no longer read as
+        // sprinting, so either alone could send him straight up.
+        private const int RecentBoostMs = 300;
+
         // Swimming: speed along the way he's swimming, in m/s (normal swimming is about 1.5), with sprint held and
         // without. The game's own swim-speed multiplier is capped low, so it just helps his strokes keep up.
         private const float SwimSpeed = 15f;
@@ -69,6 +74,9 @@ namespace RDR2ModMenu
         private int launchUntil;
         private int groundedSince;
         private Vector3 jumpVelocity;
+        private Vector3 lastBoostDirection;
+        private float lastBoostGait;
+        private int lastBoostTime;
         private Vector3 lastLoggedPosition;
         private int nextLogTime;
 
@@ -129,6 +137,10 @@ namespace RDR2ModMenu
             float extra = gaitSpeed * (SpeedMultiplier - 1f) * Math.Min(Game.FrameTime, 0.1f);
             float nextX = position.X + velocity.X / moving * extra;
             float nextY = position.Y + velocity.Y / moving * extra;
+
+            lastBoostDirection = new Vector3(velocity.X / moving, velocity.Y / moving, 0f);
+            lastBoostGait = gaitSpeed;
+            lastBoostTime = Environment.TickCount;
 
             // What he'd be standing on there: the ground, or the water's surface wherever it's above the ground.
             float groundZ;
@@ -223,10 +235,25 @@ namespace RDR2ModMenu
         // we set does take effect: launch him upward and carry his full boosted speed through the jump.
         private void StartSuperJump(Ped player, float gaitSpeed, Vector3 velocity, float moving)
         {
-            float speed = gaitSpeed * SpeedMultiplier;
-            jumpVelocity = moving > MinMovingSpeed && speed > 0f
-                ? new Vector3(velocity.X / moving * speed, velocity.Y / moving * speed, 0f)
-                : new Vector3(velocity.X, velocity.Y, 0f);
+            bool recentBoost = lastBoostTime != 0 && Environment.TickCount - lastBoostTime <= RecentBoostMs;
+            string from;
+            if (recentBoost)
+            {
+                float speed = lastBoostGait * SpeedMultiplier;
+                jumpVelocity = lastBoostDirection * speed;
+                from = "last boost";
+            }
+            else if (moving > MinMovingSpeed && gaitSpeed > 0f)
+            {
+                float speed = gaitSpeed * SpeedMultiplier;
+                jumpVelocity = new Vector3(velocity.X / moving * speed, velocity.Y / moving * speed, 0f);
+                from = "velocity";
+            }
+            else
+            {
+                jumpVelocity = new Vector3(velocity.X, velocity.Y, 0f);
+                from = "unboosted";
+            }
 
             superJumping = true;
             launching = true;
@@ -237,7 +264,8 @@ namespace RDR2ModMenu
 
             // A 10 m jump would hurt on landing.
             player.IsInvincible = true;
-            Log.Write($"Super jump from {player.Position}, forward speed {speed:F1} m/s");
+            float forward = (float)Math.Sqrt(jumpVelocity.X * jumpVelocity.X + jumpVelocity.Y * jumpVelocity.Y);
+            Log.Write($"Super jump from {player.Position}, forward speed {forward:F1} m/s (from {from}; measured {moving:F1} m/s, gait {gaitSpeed:F1})");
         }
 
         private void UpdateSuperJump(Ped player)
@@ -247,13 +275,20 @@ namespace RDR2ModMenu
 
             if (launching)
             {
-                // The jump animation starts on the ground, where set speed is ignored, so keep launching until he's up.
-                player.Velocity = new Vector3(jumpVelocity.X, jumpVelocity.Y, JumpUpSpeed);
-                if (inAir || now > launchUntil)
+                // The jump animation starts on the ground, where set speed is ignored, so keep launching until he's
+                // actually rising. Being in the air isn't enough: running on water he already counts as in the air,
+                // and stopping there left him with only a normal jump's height.
+                bool launched = inAir && player.Velocity.Z > JumpUpSpeed / 2f;
+                if (!launched && now <= launchUntil)
                 {
-                    launching = false;
+                    player.Velocity = new Vector3(jumpVelocity.X, jumpVelocity.Y, JumpUpSpeed);
+                    return;
                 }
-                return;
+                launching = false;
+                if (!launched)
+                {
+                    Log.Write($"Super jump launch timed out, vertical speed {player.Velocity.Z:F1} m/s");
+                }
             }
 
             if (inAir)
