@@ -11,7 +11,7 @@ namespace RDR2ModMenu
     // While enabled, press F7 on a horse to take off or land. In the air the horse rides as normal
     // (W walk, Shift faster, A/D steer, with the game's own animations); this mod only controls height:
     // Space rises, Q descends, and otherwise the horse holds its altitude. The higher it flies above the ground,
-    // the faster it goes, and the faster it descends, slowing as the ground gets close.
+    // the faster it goes. Descending slows as the ground gets close.
     //
     // How height is controlled, and why (all found by testing in-game):
     // - The horse's own riding moves it horizontally. The mod never sets its heading or horizontal speed:
@@ -35,11 +35,15 @@ namespace RDR2ModMenu
 
         private const float RiseSpeed = 8f;
 
-        // Descent speed is proportional to the height above the ground, so it slows as the ground gets close:
-        // from 100 m up it drops at 50 m/s, and never slower than MinDescendSpeed or faster than MaxDescendSpeed.
+        // Descent speed is proportional to the height above the ground, so it slows as the ground gets close: half the
+        // height per second, never slower than MinDescendSpeed or faster than MaxDescendSpeed (reached from 16 m up).
+        // It used to go up to 50 m/s from 100 m up, and the horse visibly shook: moved by placement, it jumped nearly a
+        // metre each frame while the game thought it wasn't moving vertically. The height reading also breaks above
+        // about 160 m (it reads the altitude instead), which made the target speed jump. MaxDescendSpeed matches
+        // RiseSpeed, which flies smoothly.
         private const float MinDescendSpeed = 4f;
         private const float DescendSpeedPerMeter = 0.5f;
-        private const float MaxDescendSpeed = 50f;
+        private const float MaxDescendSpeed = 8f;
 
         // Forward speed grows with height: normal up to BoostStartHeight, rising steadily to MaxSpeedMultiplier times
         // normal at BoostFullHeight and above.
@@ -87,7 +91,6 @@ namespace RDR2ModMenu
         private int takeoffUntil;
         private int landingStartedAt;
         private int stillSince;
-        private int nextLogTime;
 
         public FlyingHorse()
         {
@@ -252,11 +255,6 @@ namespace RDR2ModMenu
             }
             Place(new Vector3(x, y, flyZ), velocity);
 
-            if (now > nextLogTime)
-            {
-                nextLogTime = now + 1000;
-                Log.Write($"Flying: pos {position}, fly Z {flyZ:F1}, vel {velocity}, vertical {verticalSpeed:F1} (target {target:F1}), height {height:F1}, speed x{speedMultiplier:F1} (target x{targetMultiplier:F1}), rise {rise}, descend {descend} at {DescendSpeed(height):F1}, inWater {horse.IsInWater}, inAir {horse.IsInAir}");
-            }
         }
 
         private static float DescendSpeed(float height)

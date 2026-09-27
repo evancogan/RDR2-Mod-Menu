@@ -3,7 +3,7 @@ using RDR2.Native;
 
 namespace RDR2ModMenu
 {
-    // Refilling Arthur's needs, shared by the refill actions and Keep Needs Filled.
+    // Refilling Arthur's needs, shared by the refill rows and God Mode.
     // Each need has a bar (what drains in the moment) and a core behind it (the ring that drains over time).
     public static class Needs
     {

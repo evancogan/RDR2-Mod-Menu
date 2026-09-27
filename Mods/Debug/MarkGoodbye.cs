@@ -1,9 +1,9 @@
 namespace RDR2ModMenu
 {
-    // Speech button: marks Arthur's latest line in the speech log as the goodbye, so it can be found afterwards.
+    // Debug button: marks Arthur's latest line in Speech Logger's log as the goodbye, so it can be found afterwards.
     public class MarkGoodbye : ModAction
     {
-        protected override string Category => "Speech";
+        protected override string Category => "Debug";
 
         protected override string Description => "Use right after Arthur says goodbye: marks his latest line in the speech log as the goodbye.";
 

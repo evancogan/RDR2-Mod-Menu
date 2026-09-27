@@ -7,10 +7,16 @@ namespace RDR2ModMenu
     // Speech row: "Silence Goodbyes  < Off | Arthur | Arthur + camp >". Stops Arthur's goodbye at the end of a
     // conversation ("Okay, I'll catch you later then" and the rest), and optionally the other person's reply.
     //
-    // How the goodbye is recognized, found with Speech Logger: in a conversation Arthur and the other person take
-    // turns, and his next line comes about 2 s or more after his last, once they've replied. The goodbye is the one
-    // time he speaks twice in a row: it starts about half a second after his previous line ends, before they've said
-    // anything. Then they answer it. This matched both goodbyes that were marked, and none of the other lines logged.
+    // How the goodbye is recognized, found with Speech Logger. Talking to someone goes greeting, second line, farewell
+    // (the game's GREET_<NAME>, ..._SECOND_..., ..._THIRD_FAREWELL_... speech), with them answering each one. So a line
+    // of Arthur's is the goodbye when either:
+    // - it's his third line to the same person (every marked goodbye was), or
+    // - he speaks twice in a row: it starts within GoodbyeGapMs of his previous line ending, before they've said anything
+    //   (how the first two marked goodbyes came, 0.33 and 0.54 s after his line; ordinary next lines came 1.7 s or more
+    //   after, once they'd replied).
+    // The count starts again when he turns to someone else or the conversation goes quiet for ConversationTimeoutMs.
+    // Only ambient speech (the game's picked-at-random lines) counts as a goodbye; scripted lines, like mission dialogue,
+    // are left alone. A third line picked with Antagonize would be stopped too; none has been checked.
     //
     // Blocking the goodbye's speech contexts (GREET_<NAME>_THIRD_FAREWELL_... with _BLOCK_SPEECH_CONTEXT) was tried
     // first and made no difference, so instead the goodbye is stopped the moment it starts. The first few hundredths of
@@ -24,6 +30,16 @@ namespace RDR2ModMenu
         // goodbyes started 0.33 and 0.54 s after his previous line; his ordinary next lines, 1.7 s or more.
         private const int GoodbyeGapMs = 1000;
 
+        // The goodbye is his third line to the same person.
+        private const int GoodbyeLine = 3;
+
+        // A pause this long between Arthur's lines starts a new conversation.
+        private const int ConversationTimeoutMs = 15000;
+
+        // A line can take a frame or two to register as ambient, so a goodbye waits this long for it before being left
+        // alone as scripted.
+        private const int AmbientCheckMs = 200;
+
         // How long after a stopped goodbye the other person's reply is also stopped, on Arthur + camp.
         private const int ReplyWindowMs = 4000;
 
@@ -31,7 +47,11 @@ namespace RDR2ModMenu
 
         protected override string Description => "Stops Arthur's goodbye at the end of a conversation (\"Okay, I'll catch you later then\"). Arthur + camp also stops their reply.";
 
-        protected override string[] Choices => new[] { "Off", "Arthur", "Arthur + camp" };
+        private static readonly string[] Modes = { "Off", "Arthur", "Arthur + camp" };
+
+        protected override string[] Choices => Modes;
+
+        protected override int OffChoice => Off;
 
         protected override bool RememberChoice => true;
 
@@ -41,6 +61,16 @@ namespace RDR2ModMenu
         // Who Arthur was focused on when his last line ended, and whether they've spoken since.
         private int partner;
         private bool partnerReplied;
+
+        // Who Arthur is talking to, how many lines he's said to them, and when his last line started.
+        private int conversationPartner;
+        private int arthurLines;
+        private int lastArthurLineAt;
+
+        // A line that looks like a goodbye, waiting to register as ambient before it's stopped.
+        private string pendingReason;
+        private int pendingUntil;
+        private int pendingReplyPed;
 
         // Arthur's goodbye is being stopped (it can take a frame to go quiet).
         private bool stoppingGoodbye;
@@ -62,6 +92,9 @@ namespace RDR2ModMenu
                 arthurWasSpeaking = false;
                 partner = 0;
                 replyPed = 0;
+                conversationPartner = 0;
+                arthurLines = 0;
+                pendingReason = null;
                 return;
             }
 
@@ -82,18 +115,46 @@ namespace RDR2ModMenu
 
             if (speaking && !arthurWasSpeaking)
             {
+                int line = CountLine(now);
                 int gap = now - arthurEndedAt;
+                string reason = null;
                 if (partner != 0 && !partnerReplied && gap <= GoodbyeGapMs)
                 {
-                    Log.Write($"Goodbye: Arthur spoke again {gap} ms after his last line with no reply from ped {partner}. Stopping it.");
+                    reason = $"Arthur spoke again {gap} ms after his last line with no reply from ped {partner}";
+                }
+                else if (conversationPartner != 0 && line == GoodbyeLine)
+                {
+                    reason = $"Arthur's line {GoodbyeLine} to ped {conversationPartner}";
+                }
+
+                if (reason != null)
+                {
+                    pendingReason = reason;
+                    pendingUntil = now + AmbientCheckMs;
+                    pendingReplyPed = partner != 0 ? partner : conversationPartner;
+                    arthurLines = 0;
+                }
+            }
+
+            if (pendingReason != null)
+            {
+                if (speaking && AUDIO.IS_AMBIENT_SPEECH_PLAYING(player))
+                {
+                    Log.Write($"Goodbye: {pendingReason}. Stopping it.");
                     stoppingGoodbye = true;
                     goodbyeStartedAt = now;
                     if (Current == ArthurAndCamp)
                     {
-                        replyPed = partner;
+                        replyPed = pendingReplyPed;
                         stopReplyUntil = now + ReplyWindowMs;
                         replyStopped = false;
                     }
+                    pendingReason = null;
+                }
+                else if (!speaking || now > pendingUntil)
+                {
+                    Log.Write($"Looked like a goodbye ({pendingReason}) but isn't ambient speech; left alone");
+                    pendingReason = null;
                 }
             }
 
@@ -125,6 +186,31 @@ namespace RDR2ModMenu
             arthurWasSpeaking = speaking;
 
             StopReply(now);
+        }
+
+        // Counts the line Arthur just started toward his current conversation, starting a new one when he's turned to
+        // someone else or it's been quiet a while. Focus can flicker off the person mid-conversation, so an empty focus
+        // keeps the current one. Returns which line this is to them (0 when he isn't talking to anyone).
+        private int CountLine(int now)
+        {
+            int target = Natives.GetInteractionTarget();
+            if (!IsPed(target))
+            {
+                target = 0;
+            }
+            bool quiet = now - lastArthurLineAt > ConversationTimeoutMs;
+            if ((target != 0 && target != conversationPartner) || quiet)
+            {
+                conversationPartner = target;
+                arthurLines = 0;
+            }
+            lastArthurLineAt = now;
+            if (conversationPartner == 0 || !IsPed(conversationPartner))
+            {
+                conversationPartner = 0;
+                return 0;
+            }
+            return ++arthurLines;
         }
 
         private void StopReply(int now)

@@ -6,10 +6,9 @@ namespace RDR2ModMenu
 {
     // Base class for every RDR2 Mod Menu mod.
     //
-    // Mods are listed in their Category's section of the mod menu (F9) and turned on and off there. They start off
-    // until you enable them, and remember
-    // their on/off state in RDR2ModMenu.ini across Insert reloads and game restarts. Turning a mod on or off
-    // shows "<Mod Name>: ON/OFF" as a subtitle and logs the change.
+    // Mods are listed in their Category's section of the mod menu (F9) and turned on and off there. They start off until
+    // you enable them, and remember their on/off state in RDR2ModMenu.ini across Insert reloads and game restarts.
+    // Turning a mod on or off shows "<Mod Name>: ON/OFF" as a subtitle and logs the change.
     //
     // Override OnEnable/OnDisable for setup and cleanup (OnEnable can return false to refuse),
     // OnEnabledTick for per-frame work while on, and OnDisabledTick if anything must run while off.
@@ -45,6 +44,7 @@ namespace RDR2ModMenu
             {
                 ModRegistry.Unregister(registration);
                 OnAborted();
+                ScreenText.FreeAll();
             };
             Log.Write($"{DisplayName} loaded, starting {(startEnabled ? "ON" : "OFF")} ({(saved.HasValue ? "saved" : "default")})");
         }
@@ -79,7 +79,7 @@ namespace RDR2ModMenu
             IsEnabled = true;
             ModSettings.SetEnabled(SettingsKey, true);
             Screen.DisplaySubtitle($"{DisplayName}: ON. {Description}");
-            Log.Write("Turned ON");
+            Log.Write($"{DisplayName} turned ON");
         }
 
         // Mods can call this themselves, e.g. when the player does something that ends the effect.
@@ -93,7 +93,7 @@ namespace RDR2ModMenu
             ModSettings.SetEnabled(SettingsKey, false);
             OnDisable();
             Screen.DisplaySubtitle($"{DisplayName}: OFF");
-            Log.Write($"Turned OFF ({reason})");
+            Log.Write($"{DisplayName} turned OFF ({reason})");
         }
 
         private void OnTickInternal(object sender, EventArgs e)
@@ -105,7 +105,7 @@ namespace RDR2ModMenu
                 if (startEnabled && OnEnable())
                 {
                     IsEnabled = true;
-                    Log.Write("Restored ON");
+                    Log.Write($"{DisplayName} restored ON");
                 }
             }
 

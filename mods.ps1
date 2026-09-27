@@ -1,10 +1,11 @@
-# Developer tool: control whether the game loads a mod's DLL at all, by moving it between the game's
-# scripts and scripts_disabled folders. Turning loaded mods on and off is done in-game with the F6 menu.
+# Developer tool: control whether the game loads a section's DLL at all (one project per menu section under Mods\),
+# by moving it between the game's scripts and scripts_disabled folders. Turning loaded mods on and off is done in-game
+# with the F9 menu.
 #
-#   .\mods.ps1                      list every mod and whether its DLL is loaded
-#   .\mods.ps1 enable  <Mod>        load it
-#   .\mods.ps1 disable <Mod>        unload it
-#   .\mods.ps1 only    <Mod>        load this mod, unload all the others
+#   .\mods.ps1                          list every section and whether its DLL is loaded
+#   .\mods.ps1 enable  <Section>        load it
+#   .\mods.ps1 disable <Section>        unload it
+#   .\mods.ps1 only    <Section>        load this section, unload all the others
 #
 # Only DLLs named after folders in Mods\ are touched. Press Insert in-game afterwards to reload scripts.
 param(

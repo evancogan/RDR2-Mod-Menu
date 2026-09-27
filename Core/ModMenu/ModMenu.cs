@@ -8,10 +8,10 @@ using Screen = RDR2.UI.Screen;
 
 namespace RDR2ModMenu
 {
-    // F9 opens the menu: a list of sections (Player, Needs, Weapons, Horse, Crime...). Enter opens one. A section lists
-    // everything about that topic, whatever kind it is: on/off mods (Enter toggles), buttons (Enter uses) and scrolling
-    // settings (Left/Right change). Backspace goes back, F9 closes. A few seconds after loading it announces what
-    // loaded, as a smoke test.
+    // F9 opens the menu: Turn All Mods Off, then the sections (Player, Weapons, World, Game, Horse, Crime, Speech,
+    // Debug). Enter opens a section. A section lists everything about that topic, whatever kind it is: on/off mods (Enter
+    // toggles), buttons (Enter uses) and scrolling settings (Left/Right change). Backspace goes back. F9 closes it, and
+    // opens it again where it was left. A few seconds after loading it announces what loaded, as a smoke test.
     public class ModMenu : Script
     {
         private const Keys MenuKey = Keys.F9;
@@ -19,11 +19,13 @@ namespace RDR2ModMenu
         // Wait for every mod DLL to finish loading and registering before announcing.
         private const int AnnounceDelayMs = 3000;
 
-        // Sections in this order first; any others follow alphabetically.
-        private static readonly string[] SectionOrder = { "Player", "Needs", "Weapons", "Horse", "Horse Needs", "Crime" };
+        // Always shown, in this order, even when nothing is in them yet. Categories not listed follow alphabetically.
+        private static readonly string[] Sections = { "Player", "Weapons", "World", "Game", "Horse", "Crime", "Speech", "Debug" };
 
         // Anything registered without a section ends up here.
         private const string OtherSection = "Other";
+
+        private const string TurnAllOffRow = "Turn All Mods Off";
 
         // Layout, in fractions of the screen.
         private const float Left = 0.05f;
@@ -39,17 +41,25 @@ namespace RDR2ModMenu
 
         private bool open;
         private Page page = Page.Sections;
+
+        // Where the cursor is on each page, kept while the menu is closed. On the sections page, row 0 is Turn All Mods
+        // Off and the sections follow.
         private readonly Dictionary<Page, int> selected = new Dictionary<Page, int> { [Page.Sections] = 0, [Page.Section] = 0 };
         private string openSection;
 
         private List<string> sections = new List<string>();
         private Dictionary<string, List<ModInfo>> sectionItems = new Dictionary<string, List<ModInfo>>();
 
+        // The registry version the lists were built from, and each setting row's widest choice (its length in characters).
+        private int builtVersion = -1;
+        private readonly Dictionary<string[], int> widestChoice = new Dictionary<string[], int>();
+
         private readonly int announceAt;
         private bool announced;
 
         public ModMenu()
         {
+            Log.RollOver();
             announceAt = Environment.TickCount + AnnounceDelayMs;
             Tick += OnTick;
             KeyDown += OnKeyDown;
@@ -59,7 +69,7 @@ namespace RDR2ModMenu
 
         private List<ModInfo> OpenItems => openSection != null && sectionItems.TryGetValue(openSection, out List<ModInfo> items) ? items : new List<ModInfo>();
 
-        private int RowCount => page == Page.Sections ? sections.Count : OpenItems.Count;
+        private int RowCount => page == Page.Sections ? sections.Count + 1 : OpenItems.Count;
 
         private int Selected
         {
@@ -74,7 +84,6 @@ namespace RDR2ModMenu
             if (e.KeyCode == MenuKey)
             {
                 open = !open;
-                page = Page.Sections;
                 return;
             }
 
@@ -92,10 +101,10 @@ namespace RDR2ModMenu
                     Move(1);
                     break;
                 case Keys.Left:
-                    StepChoice(-1);
+                    SelectedItem?.Step(-1);
                     break;
                 case Keys.Right:
-                    StepChoice(1);
+                    SelectedItem?.Step(1);
                     break;
                 case Keys.Enter:
                     Select();
@@ -122,22 +131,17 @@ namespace RDR2ModMenu
             }
         }
 
-        private void StepChoice(int step)
-        {
-            ModInfo item = SelectedItem;
-            if (item != null && item.IsChoice)
-            {
-                item.Step(step);
-            }
-        }
-
         private void Select()
         {
             if (page == Page.Sections)
             {
-                if (Selected < sections.Count)
+                if (Selected == 0)
                 {
-                    openSection = sections[Selected];
+                    TurnAllOff();
+                }
+                else if (Selected - 1 < sections.Count)
+                {
+                    openSection = sections[Selected - 1];
                     page = Page.Section;
                     selected[Page.Section] = 0;
                 }
@@ -160,6 +164,13 @@ namespace RDR2ModMenu
             }
         }
 
+        private void TurnAllOff()
+        {
+            List<string> turnedOff = ModRegistry.GetAll().Where(item => item.TurnOff()).Select(item => item.Name).ToList();
+            Screen.DisplaySubtitle(turnedOff.Count == 0 ? "Nothing was on" : $"Turned off {turnedOff.Count} mods");
+            Log.Write(turnedOff.Count == 0 ? "Turn All Mods Off: nothing was on" : $"Turn All Mods Off: {string.Join(", ", turnedOff)}");
+        }
+
         private void OnTick(object sender, EventArgs e)
         {
             if (!announced && Environment.TickCount > announceAt)
@@ -177,7 +188,10 @@ namespace RDR2ModMenu
                 return;
             }
 
-            Refresh();
+            if (builtVersion != ModRegistry.Version)
+            {
+                Rebuild();
+            }
 
             // The menu is modal: keep arrow keys, Enter and Backspace from also acting in the game.
             Game.DisableAllControlsThisFrame();
@@ -196,20 +210,22 @@ namespace RDR2ModMenu
         // Within a section: on/off mods first, then scrolling settings, then buttons, each alphabetically.
         private static int KindOrder(ModInfo item) => item.IsToggle ? 0 : item.IsChoice ? 1 : 2;
 
-        private void Refresh()
+        // Rebuilds the section lists from the registry. Only needed when something has loaded or unloaded.
+        private void Rebuild()
         {
-            List<ModInfo> all = ModRegistry.GetAll();
-            sectionItems = all.GroupBy(SectionOf)
+            builtVersion = ModRegistry.Version;
+            sectionItems = ModRegistry.GetAll().GroupBy(SectionOf)
                 .ToDictionary(g => g.Key, g => g.OrderBy(KindOrder).ThenBy(m => m.Name).ToList());
-            sections = sectionItems.Keys
-                .OrderBy(s => Array.IndexOf(SectionOrder, s) is int i && i >= 0 ? i : SectionOrder.Length)
-                .ThenBy(s => s)
-                .ToList();
-
-            if (page == Page.Section && OpenItems.Count == 0)
+            foreach (string section in Sections)
             {
-                page = Page.Sections;
+                if (!sectionItems.ContainsKey(section))
+                {
+                    sectionItems[section] = new List<ModInfo>();
+                }
             }
+            sections = Sections.Concat(sectionItems.Keys.Except(Sections).OrderBy(s => s)).ToList();
+            widestChoice.Clear();
+
             Selected = Math.Min(Selected, Math.Max(0, RowCount - 1));
         }
 
@@ -217,17 +233,23 @@ namespace RDR2ModMenu
         {
             float y = DrawTitle("RDR2 Mod Menu");
 
-            if (sections.Count == 0)
+            // Stands apart from the sections: a slim dark red row (brighter when selected) with small grey text.
+            if (Selected == 0)
             {
-                DrawRow(y, 0, 0, 0, 190);
-                DrawText("No mods loaded", Left + TextInset, y, TextScale, 180, 180, 180);
-                y += RowHeight;
+                DrawRow(y, 190, 40, 40, 235, SmallRowHeight);
             }
+            else
+            {
+                DrawRow(y, 90, 15, 15, 215, SmallRowHeight);
+            }
+            DrawText(TurnAllOffRow, Left + TextInset, y, SmallTextScale, 180, 180, 180);
+            DrawText("USE", Left + Width - 0.03f, y, SmallTextScale, 180, 180, 180);
+            y += SmallRowHeight;
 
             for (int i = 0; i < sections.Count; i++)
             {
                 string section = sections[i];
-                DrawItemRow(y, i == Selected, section);
+                DrawItemRow(y, Selected == i + 1, section);
 
                 // How many of the section's mods are on, so you can see at a glance without opening it.
                 int on = sectionItems[section].Count(m => m.IsEnabled);
@@ -239,9 +261,18 @@ namespace RDR2ModMenu
                 y += RowHeight;
             }
 
-            string contents = Selected < sections.Count ? string.Join(", ", sectionItems[sections[Selected]].Select(m => m.Name)) : null;
-            y = DrawDescription(y, contents);
-            DrawFooter(y, "Up/Down select    Enter open    F9 close");
+            string description;
+            if (Selected == 0)
+            {
+                description = "Turns off every mod that's on, and sets rows like Refill Health back to Once.";
+            }
+            else
+            {
+                List<ModInfo> items = sectionItems[sections[Selected - 1]];
+                description = items.Count == 0 ? "Nothing here yet." : string.Join(", ", items.Select(m => m.Name));
+            }
+            y = DrawDescription(y, description);
+            DrawFooter(y, Selected == 0 ? "Up/Down select    Enter use    F9 close" : "Up/Down select    Enter open    F9 close");
         }
 
         private void DrawSectionPage()
@@ -249,6 +280,12 @@ namespace RDR2ModMenu
             float y = DrawTitle($"RDR2 Mod Menu  >  {openSection}");
             List<ModInfo> items = OpenItems;
 
+            if (items.Count == 0)
+            {
+                DrawRow(y, 0, 0, 0, 190);
+                DrawText("Nothing here yet", Left + TextInset, y, TextScale, 180, 180, 180);
+                y += RowHeight;
+            }
             for (int i = 0; i < items.Count; i++)
             {
                 DrawItemRow(y, i == Selected, items[i].Name);
@@ -269,7 +306,7 @@ namespace RDR2ModMenu
         }
 
         // ON/OFF for a mod, USE for a button, "<  Medium  >" for a scrolling setting.
-        private static void DrawItemValue(float y, ModInfo item)
+        private void DrawItemValue(float y, ModInfo item)
         {
             if (item.IsToggle)
             {
@@ -288,8 +325,13 @@ namespace RDR2ModMenu
                 int current = item.CurrentChoice;
                 string value = current >= 0 && current < choices.Length ? choices[current] : "";
                 // Placed so the row's longest choice ends at the panel's edge, keeping "<" still while scrolling.
-                float widest = choices.Length == 0 ? 0f : choices.Max(c => ScreenText.EstimateWidth($"<  {c}  >", TextScale));
-                DrawText($"<  {value}  >", Left + Width - TextInset - widest, y, TextScale, 230, 190, 90);
+                if (!widestChoice.TryGetValue(choices, out int widest))
+                {
+                    widest = choices.Length == 0 ? 0 : choices.Max(c => c.Length);
+                    widestChoice[choices] = widest;
+                }
+                float width = ScreenText.EstimateWidth(widest + "<    >".Length, TextScale);
+                DrawText($"<  {value}  >", Left + Width - TextInset - width, y, TextScale, 230, 190, 90);
             }
             else
             {

@@ -3,7 +3,7 @@ using RDR2.Native;
 
 namespace RDR2ModMenu
 {
-    // Refilling the horse's needs, like Needs does for Arthur: the bar and the core behind it, for health and stamina.
+    // Refilling the horse's needs, like Arthur's: the bar and the core behind it, for health and stamina.
     // The horse is the one he's riding, or otherwise his active horse (the one that comes when whistled for).
     public static class HorseNeeds
     {
@@ -50,25 +50,25 @@ namespace RDR2ModMenu
         }
     }
 
-    // Horse Needs section rows: "Refill Horse Health  < Once | Always >", and the same for stamina.
+    // Horse rows: "Refill Horse Health  < Once | Always >", and the same for stamina (see NeedRefill).
     public abstract class HorseNeedRefill : NeedRefill
     {
-        protected override string Category => "Horse Needs";
+        protected override string Category => "Horse";
 
         protected abstract void Refill(Ped horse);
 
-        protected override void Refill()
+        protected override bool Refill()
         {
             Ped horse = HorseNeeds.Current;
-            if (horse != null)
+            if (horse == null)
             {
-                Refill(horse);
+                return false;
             }
+            Refill(horse);
+            return true;
         }
 
         protected override string Describe() => HorseNeeds.Describe();
-
-        protected override string Use() => HorseNeeds.Current == null ? "No horse to refill" : base.Use();
     }
 
     public class RefillHorseHealth : HorseNeedRefill

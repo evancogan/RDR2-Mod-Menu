@@ -18,7 +18,9 @@ namespace RDR2ModMenu
 
         protected override string Description => "Left/Right: skinny, medium or fat. Uses the game's own weight system, so his clothes refit.";
 
-        protected override string[] Choices => new[] { "Skinny", "Medium", "Fat" };
+        private static readonly string[] Sizes = { "Skinny", "Medium", "Fat" };
+
+        protected override string[] Choices => Sizes;
 
         protected override int InitialChoice => 1;
 
@@ -56,7 +58,7 @@ namespace RDR2ModMenu
             PED._UPDATE_PED_VARIATION(arthur.Handle, false, true, true, true, false);
 
             Log.Write($"Equipped body-weight outfit #{outfit + 1} of {WeightOutfits.Length}");
-            return $"Body type: {Choices[index]}";
+            return $"Body type: {Sizes[index]}";
         }
     }
 }

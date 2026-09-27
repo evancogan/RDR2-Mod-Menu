@@ -18,6 +18,8 @@ mono_crash.*
 
 # Build results
 [Dd]ebug/
+# ...but not the Debug section's mod project (its bin/ and obj/ are still ignored below)
+!/Mods/Debug/
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/

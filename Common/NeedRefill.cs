@@ -2,12 +2,15 @@ using System;
 
 namespace RDR2ModMenu
 {
-    // Needs section rows: "Refill Health  < Once | Always >", and the same for Stamina and Dead Eye.
-    // On Once, Enter refills it right now. On Always, it's kept full, a few times a second. Remembered across reloads.
+    // Base for the refill rows: "Refill Health  < Once | Always >", for Arthur (Player) and his horse (Horse).
+    // On Once, Enter refills it right now. On Always, it's kept full, a few times a second. Remembered across reloads,
+    // and Turn All Mods Off puts it back to Once.
     public abstract class NeedRefill : ModChoice
     {
         private const int Once = 0;
         private const int Always = 1;
+
+        private static readonly string[] OnceOrAlways = { "Once", "Always" };
 
         // Refilling a few times a second is plenty and keeps it cheap.
         private const int RefillIntervalMs = 250;
@@ -17,20 +20,21 @@ namespace RDR2ModMenu
         // e.g. "Health"
         protected abstract string Need { get; }
 
-        protected abstract void Refill();
+        // Refills it; false if there's nothing to refill (no horse, say).
+        protected abstract bool Refill();
 
         // For the log, before and after a refill.
-        protected virtual string Describe() => Needs.Describe();
-
-        protected override string Category => "Needs";
+        protected abstract string Describe();
 
         protected override string Description => $"Once: press Enter to fill {Need.ToLowerInvariant()} now. Always: keeps it full.";
 
-        protected override string[] Choices => new[] { "Once", "Always" };
+        protected override string[] Choices => OnceOrAlways;
 
         protected override bool RememberChoice => true;
 
         protected override bool CanUse => true;
+
+        protected override int OffChoice => Once;
 
         protected override string Apply(int index)
         {
@@ -40,7 +44,10 @@ namespace RDR2ModMenu
         protected override string Use()
         {
             string before = Describe();
-            Refill();
+            if (!Refill())
+            {
+                return $"Nothing to refill ({before})";
+            }
             Log.Write($"Before: {before}. After: {Describe()}");
             return $"{Need} refilled";
         }
@@ -55,26 +62,5 @@ namespace RDR2ModMenu
             nextRefill = now + RefillIntervalMs;
             Refill();
         }
-    }
-
-    public class RefillHealth : NeedRefill
-    {
-        protected override string Need => "Health";
-
-        protected override void Refill() => Needs.RefillHealth();
-    }
-
-    public class RefillStamina : NeedRefill
-    {
-        protected override string Need => "Stamina";
-
-        protected override void Refill() => Needs.RefillStamina();
-    }
-
-    public class RefillDeadEye : NeedRefill
-    {
-        protected override string Need => "Dead Eye";
-
-        protected override void Refill() => Needs.RefillDeadEye();
     }
 }

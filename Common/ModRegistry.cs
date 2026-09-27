@@ -14,6 +14,7 @@ namespace RDR2ModMenu
     public static class ModRegistry
     {
         private const string DataKey = "RDR2ModMenu.ModRegistry";
+        private const string VersionKey = "RDR2ModMenu.ModRegistry.Version";
 
         internal const string NameKey = "Name";
         internal const string DescriptionKey = "Description";
@@ -24,6 +25,9 @@ namespace RDR2ModMenu
         internal const string ChoicesKey = "Choices";
         internal const string CurrentChoiceKey = "CurrentChoice";
         internal const string ChooseKey = "Choose";
+        internal const string StepSizeKey = "StepSize";
+        internal const string WrapsKey = "Wraps";
+        internal const string OffChoiceKey = "OffChoice";
 
         internal const string ToggleKind = "toggle";
         internal const string ActionKind = "action";
@@ -53,13 +57,17 @@ namespace RDR2ModMenu
         }
 
         // A row that scrolls through choices with Left/Right, listed in its menu section. If use isn't null,
-        // Enter calls it (e.g. "refill now"); otherwise Enter moves to the next choice.
-        public static object RegisterChoice(string name, string description, string category, string[] choices, Func<int> current, Action<int> choose, Action use = null)
+        // Enter calls it (e.g. "refill now"); otherwise Enter moves to the next choice. The description is asked for
+        // each time the menu shows it, so it can reflect the game (e.g. Set Honor's current limit). Each Left/Right moves
+        // stepSize choices; with wraps false it stops at the first and last choice instead of going round. offChoice is the
+        // choice that means "off" (Turn All Mods Off picks it), or -1 if the row isn't something that's on or off.
+        public static object RegisterChoice(string name, Func<string> description, string category, string[] choices, Func<int> current, Action<int> choose, Action use = null, int stepSize = 1, bool wraps = true, int offChoice = -1)
         {
             var entry = new RegistryEntry
             {
                 [NameKey] = name, [DescriptionKey] = description, [KindKey] = ChoiceKind, [CategoryKey] = category,
                 [ChoicesKey] = choices, [CurrentChoiceKey] = current, [ChooseKey] = choose,
+                [StepSizeKey] = stepSize, [WrapsKey] = wraps, [OffChoiceKey] = offChoice,
             };
             if (use != null)
             {
@@ -74,6 +82,19 @@ namespace RDR2ModMenu
             lock (SyncRoot)
             {
                 GetList().Remove((RegistryEntry)token);
+                BumpVersion();
+            }
+        }
+
+        // Changes whenever an entry is added or removed, so the menu only rebuilds its lists when something (re)loads.
+        public static int Version
+        {
+            get
+            {
+                lock (SyncRoot)
+                {
+                    return AppDomain.CurrentDomain.GetData(VersionKey) as int? ?? 0;
+                }
             }
         }
 
@@ -90,9 +111,12 @@ namespace RDR2ModMenu
             lock (SyncRoot)
             {
                 GetList().Add(entry);
+                BumpVersion();
             }
             return entry;
         }
+
+        private static void BumpVersion() => AppDomain.CurrentDomain.SetData(VersionKey, (AppDomain.CurrentDomain.GetData(VersionKey) as int? ?? 0) + 1);
 
         // The AppDomain object is the one thing every mod DLL shares, so it doubles as the lock.
         private static object SyncRoot => AppDomain.CurrentDomain;
@@ -120,13 +144,14 @@ namespace RDR2ModMenu
 
         public string Name => (string)entry[ModRegistry.NameKey];
 
-        public string Description => (string)entry[ModRegistry.DescriptionKey];
+        // Mods and buttons register a fixed description; setting rows register one that's asked for each time.
+        public string Description => entry[ModRegistry.DescriptionKey] is Func<string> live ? live() : (string)entry[ModRegistry.DescriptionKey];
 
         public bool IsToggle => Kind == ModRegistry.ToggleKind;
 
         public bool IsChoice => Kind == ModRegistry.ChoiceKind;
 
-        // The menu section it's listed in, e.g. "Needs".
+        // The menu section it's listed in, e.g. "Player".
         public string Category => entry.TryGetValue(ModRegistry.CategoryKey, out object category) ? (string)category : null;
 
         public bool IsEnabled => IsToggle && ((Func<bool>)entry[ModRegistry.IsEnabledKey])();
@@ -147,14 +172,46 @@ namespace RDR2ModMenu
             }
         }
 
-        // Moves a choice by step (wrapping around), also applied on the mod's next frame.
+        // Moves a choice by step times the row's step size, wrapping around or stopping at the ends as the row asks.
+        // Applied on the mod's next frame.
         public void Step(int step)
         {
             int count = Choices.Length;
-            if (count > 0)
+            if (count == 0)
             {
-                ((Action<int>)entry[ModRegistry.ChooseKey])(((CurrentChoice + step) % count + count) % count);
+                return;
             }
+            int stepSize = entry.TryGetValue(ModRegistry.StepSizeKey, out object size) ? (int)size : 1;
+            bool wraps = !entry.TryGetValue(ModRegistry.WrapsKey, out object wrap) || (bool)wrap;
+            int current = CurrentChoice;
+            int next = current + step * stepSize;
+            next = wraps ? (next % count + count) % count : Math.Max(0, Math.Min(count - 1, next));
+            if (next != current)
+            {
+                ((Action<int>)entry[ModRegistry.ChooseKey])(next);
+            }
+        }
+
+        // Turns it off, if it's a mod that's on or a setting that has an "off" choice and isn't on it. Applied on the mod's
+        // next frame. True if it was on.
+        public bool TurnOff()
+        {
+            if (IsToggle)
+            {
+                if (IsEnabled)
+                {
+                    Activate();
+                    return true;
+                }
+                return false;
+            }
+            int off = IsChoice && entry.TryGetValue(ModRegistry.OffChoiceKey, out object value) ? (int)value : -1;
+            if (off >= 0 && CurrentChoice != off)
+            {
+                ((Action<int>)entry[ModRegistry.ChooseKey])(off);
+                return true;
+            }
+            return false;
         }
 
         private string Kind => (string)entry[ModRegistry.KindKey];

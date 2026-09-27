@@ -77,8 +77,6 @@ namespace RDR2ModMenu
         private Vector3 lastBoostDirection;
         private float lastBoostGait;
         private int lastBoostTime;
-        private Vector3 lastLoggedPosition;
-        private int nextLogTime;
 
         protected override void OnEnabledTick()
         {
@@ -119,17 +117,12 @@ namespace RDR2ModMenu
             bool canBoost = gaitSpeed > 0f && moving > MinMovingSpeed && !player.IsSwimming && (!player.IsInAir || runningOnWater);
             if (!canBoost)
             {
-                if (runningOnWater)
-                {
-                    Log.Write($"Stopped on water at {position}, sinking");
-                }
                 runningOnWater = false;
                 wetLineZ = null;
                 if (gaitSpeed == 0f && !player.IsInAir && !player.IsSwimming)
                 {
                     standingHeight = player.HeightAboveGround;
                 }
-                LogSpeed(player, gaitSpeed, "");
                 return;
             }
 
@@ -152,7 +145,6 @@ namespace RDR2ModMenu
             bool onWater = false;
 
             float waterZ;
-            string waterMethod = "probe";
             if (Natives.TryGetWaterZ(nextX, nextY, position.Z, out waterZ) && waterZ > groundZ)
             {
                 surfaceZ = waterZ;
@@ -164,7 +156,6 @@ namespace RDR2ModMenu
             if (player.IsInWater && wetLineZ == null)
             {
                 wetLineZ = position.Z - standingHeight;
-                Log.Write($"Feet wet at {position}: water line {wetLineZ:F1}, ground ahead {groundZ:F1}");
             }
             if (wetLineZ.HasValue)
             {
@@ -176,7 +167,6 @@ namespace RDR2ModMenu
                 {
                     surfaceZ = wetLineZ.Value;
                     onWater = true;
-                    waterMethod = "wet line";
                 }
             }
 
@@ -185,18 +175,12 @@ namespace RDR2ModMenu
             {
                 // A ledge (let him drop naturally) or a steep rise (let the slope stop him).
                 runningOnWater = false;
-                LogSpeed(player, gaitSpeed, $"paused: surface ahead {nextZ - position.Z:+0.0;-0.0} m");
                 return;
             }
 
-            if (onWater && !runningOnWater)
-            {
-                Log.Write($"Running on water at {position}, surface {surfaceZ:F1} (from {waterMethod}), ground {groundZ:F1}");
-            }
             runningOnWater = onWater;
 
             ENTITY.SET_ENTITY_COORDS_NO_OFFSET(player.Handle, new Vector3(nextX, nextY, nextZ), true, false, false);
-            LogSpeed(player, gaitSpeed, $"surface {(onWater ? "water" : "ground")} {surfaceZ:F1}, standing height {standingHeight:F2}");
         }
 
         // Jetski swimming: placed along the way he's swimming, like the on-foot boost. At the surface only horizontally,
@@ -212,7 +196,6 @@ namespace RDR2ModMenu
             float moving = (float)Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y + direction.Z * direction.Z);
             if (moving < MinMovingSpeed)
             {
-                LogSpeed(player, 0f, "swimming, still");
                 return;
             }
 
@@ -223,12 +206,10 @@ namespace RDR2ModMenu
             float groundZ;
             if (!underwater && Natives.TryGetGroundZ(next.X, next.Y, position.Z + 2f, out groundZ) && groundZ > position.Z - MinSwimDepth)
             {
-                LogSpeed(player, 0f, $"swimming, shallows ahead (bottom {groundZ:F1})");
                 return;
             }
 
             ENTITY.SET_ENTITY_COORDS_NO_OFFSET(player.Handle, next, true, false, false);
-            LogSpeed(player, 0f, $"swimming{(underwater ? " underwater" : "")}, target {(sprint ? SwimSprintSpeed : SwimSpeed):F0} m/s");
         }
 
         // The placement boost only works on the ground, so a normal jump leaves with un-boosted speed. In the air, speed
@@ -236,23 +217,18 @@ namespace RDR2ModMenu
         private void StartSuperJump(Ped player, float gaitSpeed, Vector3 velocity, float moving)
         {
             bool recentBoost = lastBoostTime != 0 && Environment.TickCount - lastBoostTime <= RecentBoostMs;
-            string from;
             if (recentBoost)
             {
-                float speed = lastBoostGait * SpeedMultiplier;
-                jumpVelocity = lastBoostDirection * speed;
-                from = "last boost";
+                jumpVelocity = lastBoostDirection * (lastBoostGait * SpeedMultiplier);
             }
             else if (moving > MinMovingSpeed && gaitSpeed > 0f)
             {
                 float speed = gaitSpeed * SpeedMultiplier;
                 jumpVelocity = new Vector3(velocity.X / moving * speed, velocity.Y / moving * speed, 0f);
-                from = "velocity";
             }
             else
             {
                 jumpVelocity = new Vector3(velocity.X, velocity.Y, 0f);
-                from = "unboosted";
             }
 
             superJumping = true;
@@ -264,8 +240,6 @@ namespace RDR2ModMenu
 
             // A 10 m jump would hurt on landing.
             player.IsInvincible = true;
-            float forward = (float)Math.Sqrt(jumpVelocity.X * jumpVelocity.X + jumpVelocity.Y * jumpVelocity.Y);
-            Log.Write($"Super jump from {player.Position}, forward speed {forward:F1} m/s (from {from}; measured {moving:F1} m/s, gait {gaitSpeed:F1})");
         }
 
         private void UpdateSuperJump(Ped player)
@@ -307,27 +281,9 @@ namespace RDR2ModMenu
             {
                 superJumping = false;
                 player.IsInvincible = false;
-                Log.Write($"Super jump landed at {player.Position}");
             }
         }
 
-        private void LogSpeed(Ped player, float gaitSpeed, string detail)
-        {
-            int now = Environment.TickCount;
-            if (now <= nextLogTime)
-            {
-                return;
-            }
-
-            Vector3 position = player.Position;
-            float dx = position.X - lastLoggedPosition.X;
-            float dy = position.Y - lastLoggedPosition.Y;
-            float actual = (float)Math.Sqrt(dx * dx + dy * dy) / ((now - nextLogTime + 1000) / 1000f);
-            string gait = player.IsSprinting ? "sprint" : player.IsRunning ? "run" : player.IsWalking ? "walk" : "still";
-            Log.Write($"{gait}: actual speed {actual:F1} m/s (target {gaitSpeed * SpeedMultiplier:F1}), inAir {player.IsInAir}, swimming {player.IsSwimming}. {detail}");
-            lastLoggedPosition = position;
-            nextLogTime = now + 1000;
-        }
 
         protected override void OnDisable()
         {

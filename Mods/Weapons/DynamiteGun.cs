@@ -1,10 +1,10 @@
 using RDR2;
 using RDR2.Math;
-using Screen = RDR2.UI.Screen;
 
 namespace RDR2ModMenu
 {
-    // Every bullet the player fires explodes like dynamite where it lands.
+    // Weapons mod: every bullet Arthur fires explodes like dynamite where it lands, except within MinSafeDistance of
+    // him. The impact comes from Natives.TryGetLastWeaponImpact, which reads the game's padded out-vector correctly.
     public class DynamiteGun : ModScript
     {
         protected override string Category => "Weapons";
@@ -14,7 +14,6 @@ namespace RDR2ModMenu
         // Don't blow up impacts this close to the player, so point-blank shots aren't suicide.
         private const float MinSafeDistance = 5.0f;
 
-        private bool wasShooting;
         private Vector3 lastImpact = Vector3.Zero;
 
         protected override bool OnEnable()
@@ -28,13 +27,6 @@ namespace RDR2ModMenu
         {
             Ped player = Game.Player.Character;
 
-            bool isShooting = player.IsShooting;
-            if (isShooting && !wasShooting)
-            {
-                Log.Write($"Shot fired from {player.Position}");
-            }
-            wasShooting = isShooting;
-
             // The last impact stays the same until a new shot lands, so only react when it changes.
             if (!Natives.TryGetLastWeaponImpact(player, out Vector3 impact) || impact == lastImpact)
             {
@@ -42,16 +34,10 @@ namespace RDR2ModMenu
             }
             lastImpact = impact;
 
-            float distance = impact.DistanceTo(player.Position);
-            if (distance < MinSafeDistance)
+            if (impact.DistanceTo(player.Position) >= MinSafeDistance)
             {
-                Log.Write($"Impact at {impact} skipped, only {distance:F1}m away");
-                return;
+                World.AddExplosion(impact, (int)eExplosionTag.Dynamite, 1.0f, 1.0f);
             }
-
-            Log.Write($"Impact at {impact}, {distance:F1}m away: exploding");
-            Screen.DisplaySubtitle($"BOOM ({distance:F0}m)");
-            World.AddExplosion(impact, (int)eExplosionTag.Dynamite, 1.0f, 1.0f);
         }
     }
 }

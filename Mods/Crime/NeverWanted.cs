@@ -39,6 +39,11 @@ namespace RDR2ModMenu
         private int nextFlag;
         private bool witnessesSeen;
 
+        // How far from Arthur people are flagged.
+        private const float FlagRadius = 150f;
+
+        private readonly NearbyPeds nearby = new NearbyPeds();
+
         protected override bool OnEnable()
         {
             int player = Game.Player.Handle;
@@ -65,25 +70,16 @@ namespace RDR2ModMenu
             }
             nextFlag = now + FlagIntervalMs;
 
-            int arthur = Game.Player.Character.Handle;
-            int added = 0;
-            var present = new HashSet<int>();
-            foreach (Ped ped in World.GetAllPeds())
+            Ped arthur = Game.Player.Character;
+            foreach (int handle in nearby.Find(arthur.Position, FlagRadius))
             {
-                int handle = ped.Handle;
-                present.Add(handle);
-                if (handle != arthur && !PED.GET_PED_CONFIG_FLAG(handle, CantWitnessCrimes, true))
+                if (handle != arthur.Handle && !PED.GET_PED_CONFIG_FLAG(handle, CantWitnessCrimes, true))
                 {
                     PED.SET_PED_CONFIG_FLAG(handle, CantWitnessCrimes, true);
                     flagged.Add(handle);
-                    added++;
                 }
             }
-            flagged.IntersectWith(present);
-            if (added > 0)
-            {
-                Log.Write($"Made {added} more people unable to witness crimes ({flagged.Count} around now)");
-            }
+            flagged.RemoveWhere(handle => !ENTITY.DOES_ENTITY_EXIST(handle) || !ENTITY.IS_ENTITY_A_PED(handle));
         }
 
         // Backstop: if witnesses show up anyway, clear the incident they're witnessing, once each time they appear.
@@ -116,6 +112,9 @@ namespace RDR2ModMenu
                 }
             }
             flagged.Clear();
+            nearby.Dispose();
+            nextFlag = 0;
+            witnessesSeen = false;
             Log.Write($"People can witness crimes again ({restored} unflagged)");
         }
 

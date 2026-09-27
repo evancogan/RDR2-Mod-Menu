@@ -30,6 +30,18 @@ namespace RDR2ModMenu
         // Whether Enter does something on this row (Use); otherwise Enter just moves to the next choice.
         protected virtual bool CanUse => false;
 
+        // How many choices each Left/Right moves, and whether it goes round from the last choice to the first.
+        protected virtual int StepSize => 1;
+
+        protected virtual bool Wraps => true;
+
+        // The choice that means "off", which Turn All Mods Off picks; -1 for rows that aren't on or off (Body Type).
+        protected virtual int OffChoice => -1;
+
+        // The choice the row shows. Defaults to the last one picked; a row showing something live from the game (like
+        // Set Honor's current honor) overrides it.
+        protected virtual int LiveChoice => Current;
+
         // Defaults to the class name split into words; override for a custom name.
         protected virtual string DisplayName => ModRegistry.DisplayNameOf(GetType());
 
@@ -53,8 +65,8 @@ namespace RDR2ModMenu
                 }
             }
 
-            registration = ModRegistry.RegisterChoice(DisplayName, Description, Category, Choices, () => Current,
-                index => requested = index, CanUse ? () => useRequested = true : (Action)null);
+            registration = ModRegistry.RegisterChoice(DisplayName, () => Description, Category, Choices, () => LiveChoice,
+                index => requested = index, CanUse ? () => useRequested = true : (Action)null, StepSize, Wraps, OffChoice);
             Tick += OnTickInternal;
             Aborted += (sender, e) => ModRegistry.Unregister(registration);
             Log.Write($"{DisplayName} loaded (choice in {Category}, {Choices[Current]})");

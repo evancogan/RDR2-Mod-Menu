@@ -12,7 +12,7 @@ namespace RDR2ModMenu
         // One line shown in the mod menu.
         protected abstract string Description { get; }
 
-        // The menu section it's listed in, e.g. "Needs".
+        // The menu section it's listed in, e.g. "Player".
         protected abstract string Category { get; }
 
         // Defaults to the class name split into words; override for a custom name (the menu sorts by it).

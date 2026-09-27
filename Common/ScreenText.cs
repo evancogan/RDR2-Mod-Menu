@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using RDR2.Native;
@@ -21,23 +22,37 @@ namespace RDR2ModMenu
         // The game has no text-width native we can use, so this is an average with headroom for wide letters.
         private const float CharWidthPerScale = 0.015f;
 
-        // One buffer per distinct string, kept for the life of the script. Fine for menu labels;
-        // don't use this for text that changes every frame, like live numbers.
-        private static readonly Dictionary<string, IntPtr> Buffers = new Dictionary<string, IntPtr>();
+        // One buffer per distinct string drawn. A buffer not drawn for UnusedMs is freed (it can't still be waiting to
+        // render by then), so text that keeps changing, like a live number, doesn't pile up. The rest are freed when the
+        // script unloads (FreeAll).
+        private const int UnusedMs = 2000;
+        private const int SweepIntervalMs = 1000;
+
+        private sealed class Buffer
+        {
+            public IntPtr Pointer;
+            public int LastDrawn;
+        }
+
+        private static readonly Dictionary<string, Buffer> Buffers = new Dictionary<string, Buffer>();
+        private static int nextSweep;
 
         public static unsafe void Draw(string text, float x, float y, float scale, int r, int g, int b, int a = 255)
         {
-            ulong* literal = (ulong*)GetBuffer("LITERAL_STRING");
-            ulong* content = (ulong*)GetBuffer(text);
+            int now = Environment.TickCount;
+            ulong* literal = (ulong*)GetBuffer("LITERAL_STRING", now);
+            ulong* content = (ulong*)GetBuffer(text, now);
             ulong varString = Function.Call<ulong>(VAR_STRING, 10, literal, content);
 
             Function.Call(BG_SET_TEXT_SCALE, scale, scale);
             Function.Call(BG_SET_TEXT_COLOR, r, g, b, a);
             Function.Call(BG_DISPLAY_TEXT, (ulong*)varString, x, y);
+            FreeUnused(now);
         }
 
-        // Roughly how wide text is at the given scale, as a fraction of the screen width, erring on the wide side.
-        public static float EstimateWidth(string text, float scale) => text.Length * CharWidthPerScale * scale;
+        // Roughly how wide text of this many characters is at the given scale, as a fraction of the screen width, erring
+        // on the wide side.
+        public static float EstimateWidth(int characters, float scale) => characters * CharWidthPerScale * scale;
 
         // Splits text into lines that fit within maxWidth (a fraction of the screen width) at the given scale.
         public static List<string> Wrap(string text, float maxWidth, float scale)
@@ -69,24 +84,39 @@ namespace RDR2ModMenu
         // Call when the script unloads.
         public static void FreeAll()
         {
-            foreach (IntPtr buffer in Buffers.Values)
+            foreach (Buffer buffer in Buffers.Values)
             {
-                Marshal.FreeHGlobal(buffer);
+                Marshal.FreeHGlobal(buffer.Pointer);
             }
             Buffers.Clear();
         }
 
-        private static IntPtr GetBuffer(string text)
+        private static IntPtr GetBuffer(string text, int now)
         {
-            IntPtr buffer;
+            Buffer buffer;
             if (!Buffers.TryGetValue(text, out buffer))
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(text + "\0");
-                buffer = Marshal.AllocHGlobal(bytes.Length);
-                Marshal.Copy(bytes, 0, buffer, bytes.Length);
+                buffer = new Buffer { Pointer = Marshal.AllocHGlobal(bytes.Length) };
+                Marshal.Copy(bytes, 0, buffer.Pointer, bytes.Length);
                 Buffers[text] = buffer;
             }
-            return buffer;
+            buffer.LastDrawn = now;
+            return buffer.Pointer;
+        }
+
+        private static void FreeUnused(int now)
+        {
+            if (now < nextSweep)
+            {
+                return;
+            }
+            nextSweep = now + SweepIntervalMs;
+            foreach (string text in Buffers.Where(entry => now - entry.Value.LastDrawn > UnusedMs).Select(entry => entry.Key).ToList())
+            {
+                Marshal.FreeHGlobal(Buffers[text].Pointer);
+                Buffers.Remove(text);
+            }
         }
     }
 }
