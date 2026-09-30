@@ -19,6 +19,7 @@ namespace RDR2ModMenu
         // The menu section it's listed in, e.g. "Player".
         protected abstract string Category { get; }
 
+        // Asked for each time the menu draws the row, so it can change (return the same array while it hasn't).
         protected abstract string[] Choices { get; }
 
         // Which choice the row shows before anything has been picked (or saved).
@@ -65,7 +66,7 @@ namespace RDR2ModMenu
                 }
             }
 
-            registration = ModRegistry.RegisterChoice(DisplayName, () => Description, Category, Choices, () => LiveChoice,
+            registration = ModRegistry.RegisterChoice(DisplayName, () => Description, Category, () => Choices, () => LiveChoice,
                 index => requested = index, CanUse ? () => useRequested = true : (Action)null, StepSize, Wraps, OffChoice);
             Tick += OnTickInternal;
             Aborted += (sender, e) => ModRegistry.Unregister(registration);
@@ -89,6 +90,10 @@ namespace RDR2ModMenu
             if (index >= 0)
             {
                 requested = -1;
+            }
+            // The choices may have changed since it was picked.
+            if (index >= 0 && index < Choices.Length)
+            {
                 Current = index;
                 if (RememberChoice)
                 {

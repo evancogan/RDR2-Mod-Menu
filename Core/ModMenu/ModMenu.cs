@@ -27,6 +27,23 @@ namespace RDR2ModMenu
 
         private const string TurnAllOffRow = "Turn All Mods Off";
 
+        // What the menu's keys (arrows, Enter, Backspace) might also do in the game: its own menus and the item and weapon
+        // wheels scroll with them. The game's controls are named by action, not key, so this is the actions those keys
+        // usually drive; add to it if one still comes through.
+        private static readonly eInputType[] MenuKeyControls =
+        {
+            eInputType.FrontendUp, eInputType.FrontendDown, eInputType.FrontendLeft, eInputType.FrontendRight,
+            eInputType.FrontendNavUp, eInputType.FrontendNavDown, eInputType.FrontendNavLeft, eInputType.FrontendNavRight,
+            eInputType.FrontendAccept, eInputType.FrontendCancel, eInputType.FrontendSelect,
+            eInputType.GameMenuUp, eInputType.GameMenuDown, eInputType.GameMenuLeft, eInputType.GameMenuRight,
+            eInputType.GameMenuAccept, eInputType.GameMenuCancel,
+            eInputType.CellphoneUp, eInputType.CellphoneDown, eInputType.CellphoneLeft, eInputType.CellphoneRight,
+            eInputType.CellphoneSelect, eInputType.CellphoneCancel,
+            eInputType.ScriptPadUp, eInputType.ScriptPadDown, eInputType.ScriptPadLeft, eInputType.ScriptPadRight,
+            eInputType.SelectNextWeapon, eInputType.SelectPrevWeapon, eInputType.NextWeapon, eInputType.PrevWeapon,
+            eInputType.Enter,
+        };
+
         // Layout, in fractions of the screen.
         private const float Left = 0.05f;
         private const float Top = 0.15f;
@@ -193,8 +210,12 @@ namespace RDR2ModMenu
                 Rebuild();
             }
 
-            // The menu is modal: keep arrow keys, Enter and Backspace from also acting in the game.
-            Game.DisableAllControlsThisFrame();
+            // You can still move, look around and act while the menu is open; only what its keys would also do in the game
+            // is blocked.
+            foreach (eInputType control in MenuKeyControls)
+            {
+                Game.DisableControlThisFrame(control);
+            }
             if (page == Page.Sections)
             {
                 DrawSectionsPage();
@@ -327,6 +348,11 @@ namespace RDR2ModMenu
                 // Placed so the row's longest choice ends at the panel's edge, keeping "<" still while scrolling.
                 if (!widestChoice.TryGetValue(choices, out int widest))
                 {
+                    // Rows whose choices change (like Banned Lines) add a new array each time; don't let those pile up.
+                    if (widestChoice.Count > 64)
+                    {
+                        widestChoice.Clear();
+                    }
                     widest = choices.Length == 0 ? 0 : choices.Max(c => c.Length);
                     widestChoice[choices] = widest;
                 }

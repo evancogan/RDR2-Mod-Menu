@@ -18,7 +18,7 @@ Setting an `RDR2Dir` environment variable does the same thing. If the build can'
 
 ## Using it in-game
 
-Press `F9` to open the menu. At the top is **Turn All Mods Off**, which switches off every mod that's on and puts rows like Refill Health back to Once. Below it are the sections: Player, Weapons, World, Game, Horse, Crime, Speech and Debug. Each shows how many of its mods are on, and a section with nothing in it yet says so. Use `Up` and `Down` to move, `Enter` to open a section, and `F9` again to close the menu. It opens again right where you left it.
+Press `F9` to open the menu. At the top is **Turn All Mods Off**, which switches off every mod that's on and puts rows like Refill Health back to Once. Below it are the sections: Player, Weapons, World, Game, Horse, Crime, Speech and Debug. Each shows how many of its mods are on, and a section with nothing in it yet says so. Use `Up` and `Down` to move, `Enter` to open a section, and `F9` again to close the menu. It opens again right where you left it. You can keep moving, looking around and acting while it's open. Only what its own keys would also do in the game (like scrolling the weapon wheel) is blocked.
 
 Inside a section you'll find three kinds of entries:
 
@@ -56,10 +56,10 @@ A few other things worth knowing:
 | Crime | **Never Wanted** | mod | The law never comes after you while it's on: nobody around you can witness a crime, and lawmen aren't sent. Bounties aren't touched. |
 | Crime | **Clear Bounty** | button | Wipes your bounty and the law's record of your past crimes. |
 | Crime | **Clear Wanted Level** | button | Ends the law's current chase. Your bounty doesn't change. |
-| Speech | **Silence Goodbyes** `< Off / Arthur / Arthur + camp >` | setting | Stops Arthur's goodbye at the end of a conversation ("Okay, I'll catch you later then" and its variations), so a heavy talk doesn't end on a jarring line. It's cut off as it starts, so a split second may slip through. On Arthur + camp, the other person's goodbye back is stopped too. Remembers its setting. |
+| Speech | **Skip Banned Lines** | mod | Cuts off the lines you've banned as soon as their subtitle shows, so only those exact lines go (a split second may still be heard). Everything else still plays, like Arthur's other goodbyes, or an insult if you pick Antagonize. Game subtitles must be on. |
+| Speech | **Ban a Line** `< Latest / 2nd latest / ... >` | setting | Right after hearing a line you don't want again, open this row. The description shows the latest subtitle, and `Left`/`Right` go back through the last 8. `Enter` bans the one shown, or unbans it if it's already banned. |
+| Speech | **Banned Lines** `< 1 of 3 >` | setting | Goes through the no-list. `Enter` unbans the one shown. |
 | Debug | **Honor Watch** | mod | Only reads. Shows Arthur's honor, and the range the story allows, at the top right, and logs every change. |
-| Debug | **Speech Logger** | mod | Logs every line Arthur and people within 15 m of him speak, numbered, with whether it was ambient speech (the kind that can be blocked), how long it lasted and who Arthur was focused on. Arthur's latest line number is shown at the top right. |
-| Debug | **Mark Goodbye** | button | Use right after Arthur says goodbye. Marks his latest line in Speech Logger's log so it's easy to find. |
 
 ## Keys
 
@@ -140,6 +140,13 @@ mods disable Debug
 
 It just moves DLLs between the game's `scripts\` and `scripts_disabled\` folders. Builds put a mod back wherever it currently is, and the menu itself (anything under `Core`) is never moved.
 
+## Speech lines
+
+The Speech section knows a line by its subtitle, exactly as the game shows it, so what you ban is what you saw and heard. No native tells a script what's being said, so `SubtitleReader` reads the game's list of subtitles straight from memory, without changing anything. It finds the list by searching the game's code for the instruction that loads its address, a method from [Rdr2TcpSubtitles](https://github.com/Kanawanagasaki/Rdr2TcpSubtitles), so it doesn't depend on one game version. Every text pointer is checked with Windows before it's read.
+
+- Every subtitle is logged, e.g. `Subtitle: "Okay, I'll catch you later then."`.
+- The no-list is `RDR2ModMenu.banned.txt` next to `RDR2.exe`, one subtitle per line. It can be edited by hand.
+
 ## Things we learned the hard way
 
 - V2's `Ped.GetLastWeaponImpactCoords` gives back scrambled coordinates, because the game pads each number to 8 bytes and V2 doesn't expect that. Use `Natives.TryGetLastWeaponImpact` instead, and watch for the same problem anywhere else V2 hands back a `Vector3` through a pointer.
@@ -158,5 +165,6 @@ It just moves DLLs between the game's `scripts\` and `scripts_disabled\` folders
   - [Ped Damage Overhaul](https://github.com/HJHughJanus/PedDamageOverhaulRDR2) imitates bleeding by chipping health away. Its code for the real artery bleed is commented out.
   - The damage event (`EVENT_ENTITY_DAMAGED` in event group 0) gives victim, attacker, weapon and damage, one 8-byte slot each ([femga's layout](https://github.com/femga/rdr3_discoveries/tree/master/AI/EVENTS)), and `IS_WEAPON_A_GUN` tells guns from everything else.
 - `IS_SCRIPTED_SPEECH_PLAYING` crashed Script Hook when given a ped. Its argument isn't documented, so leave it alone.
-- Camp talk is ambient speech, picked from named speech contexts ([femga's audio_banks.lua](https://github.com/femga/rdr3_discoveries/blob/master/audio/audio_banks/audio_banks.lua) lists every voice bank's). Blocking Arthur's farewell contexts (`GREET_<NAME>_THIRD_FAREWELL_...`) with `_BLOCK_SPEECH_CONTEXT` didn't stop his goodbye. What identifies it is its place in the conversation. Talking to someone goes greeting, second line, farewell, so the goodbye is Arthur's third line to the same person. Sometimes it also comes as him speaking twice in a row, about half a second after his last line and before the other person replies. Only ambient speech counts, so scripted mission dialogue is left alone.
+- Camp talk is ambient speech, picked from named speech contexts ([femga's audio_banks.lua](https://github.com/femga/rdr3_discoveries/blob/master/audio/audio_banks/audio_banks.lua) lists every voice bank's). Scripts can only ask whether someone is speaking and whether it's ambient, not what's being said, and blocking a context with `_BLOCK_SPEECH_CONTEXT` didn't stop Arthur's goodbye. An earlier Silence Goodbyes guessed the goodbye from its place in the conversation (Arthur's third line) and cut it as it started. That was the wrong idea: the goodbye is simply what the third Greet says, and a third Antagonize says an insult instead, so it silenced insults too. Most third Greets also fit the moment, because each member of the gang has their own farewells, e.g. `GREET_CHARLES_THIRD_FAREWELL_GENERAL_CONV` ("Well, we're glad to have you."). The jarring ones come from the generic `CAMP_GREET_THIRD_FAREWELL` pool, which is why the Speech section bans exact lines instead.
+- Reading lines by their speech ID was tried first. [HearTell](https://www.nexusmods.com/reddeadredemption2/mods/9961), an ambient subtitle mod, patches a call at `RDR2.exe + 0x2FABC43` where the game hands a line to its speech system, which gives its voice, context and take. That call doesn't mean the line is said, though: while Arthur faces someone, the game keeps preparing both his next greeting and his next insult, about every second, and most are never spoken. Reading the subtitles avoids that, because they only show for lines actually said.
 - When Arthur or a horse is on the ground, the game ignores any speed you set, because the animation is what moves them. Moving them by position with "keep tasks" works instead. The comments in `FlyingHorse.cs` and `SuperSpeed.cs` go into more detail.

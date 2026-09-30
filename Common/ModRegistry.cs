@@ -57,11 +57,12 @@ namespace RDR2ModMenu
         }
 
         // A row that scrolls through choices with Left/Right, listed in its menu section. If use isn't null,
-        // Enter calls it (e.g. "refill now"); otherwise Enter moves to the next choice. The description is asked for
-        // each time the menu shows it, so it can reflect the game (e.g. Set Honor's current limit). Each Left/Right moves
+        // Enter calls it (e.g. "refill now"); otherwise Enter moves to the next choice. The description and the choices
+        // are asked for each time the menu shows them, so they can reflect the game (e.g. Set Honor's current limit, or
+        // the lines banned so far). Return the same array while the choices are unchanged. Each Left/Right moves
         // stepSize choices; with wraps false it stops at the first and last choice instead of going round. offChoice is the
         // choice that means "off" (Turn All Mods Off picks it), or -1 if the row isn't something that's on or off.
-        public static object RegisterChoice(string name, Func<string> description, string category, string[] choices, Func<int> current, Action<int> choose, Action use = null, int stepSize = 1, bool wraps = true, int offChoice = -1)
+        public static object RegisterChoice(string name, Func<string> description, string category, Func<string[]> choices, Func<int> current, Action<int> choose, Action use = null, int stepSize = 1, bool wraps = true, int offChoice = -1)
         {
             var entry = new RegistryEntry
             {
@@ -156,7 +157,7 @@ namespace RDR2ModMenu
 
         public bool IsEnabled => IsToggle && ((Func<bool>)entry[ModRegistry.IsEnabledKey])();
 
-        public string[] Choices => IsChoice ? (string[])entry[ModRegistry.ChoicesKey] : new string[0];
+        public string[] Choices => !IsChoice ? new string[0] : entry[ModRegistry.ChoicesKey] is Func<string[]> live ? live() : (string[])entry[ModRegistry.ChoicesKey];
 
         public int CurrentChoice => IsChoice ? ((Func<int>)entry[ModRegistry.CurrentChoiceKey])() : 0;
 
