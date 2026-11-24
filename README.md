@@ -1,5 +1,7 @@
 # RDR2 Mod Menu
 
+![C#](https://img.shields.io/badge/C%23-.NET-512BD4?logo=dotnet&logoColor=white) ![ScriptHookRDR2](https://img.shields.io/badge/ScriptHookRDR2-.NET%20V2-8B0000)
+
 Single-player mods for Red Dead Redemption 2 with an in-game menu to toggle them. Built on ScriptHookRDR2 .NET V2.
 
 ## Setup
