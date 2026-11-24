@@ -8,7 +8,7 @@ namespace RDR2ModMenu
 {
     // The list of loaded mods, actions and choices that the mod menu shows.
     //
-    // Each mod is its own DLL with its own copy of Common, so a normal static list wouldn't be shared. All scripts run
+    // Each menu section is its own DLL with its own copy of Common, so a normal static list wouldn't be shared. All scripts run
     // in the same AppDomain, though, so the list is stored there. Each entry is a dictionary holding only framework
     // types (strings, delegates, arrays), which every DLL sees as the same types.
     public static class ModRegistry
