@@ -91,3 +91,7 @@ mods disable Debug
 ## Notes
 
 See [LESSONS-LEARNED.md](LESSONS-LEARNED.md) for research notes on natives, workarounds and dead ends.
+
+## AI attribution
+
+Claude (Anthropic) helped write the code in this project, working under my direction.
