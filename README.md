@@ -94,4 +94,4 @@ See [LESSONS-LEARNED.md](LESSONS-LEARNED.md) for research notes on natives, work
 
 ## AI attribution
 
-Claude (Anthropic) helped write the code in this project, working under my direction.
+Claude (Anthropic) wrote most of the code in this project under my direction. I planned the mods, tested each change in-game and reported back what worked and what didn't.
