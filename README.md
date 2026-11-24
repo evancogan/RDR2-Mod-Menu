@@ -92,6 +92,6 @@ mods disable Debug
 
 See [LESSONS-LEARNED.md](LESSONS-LEARNED.md) for research notes on natives, workarounds and dead ends.
 
-## AI attribution
+## How it was built
 
-Claude (Anthropic) wrote most of the code in this project under my direction. I planned the mods, tested each change in-game and reported back what worked and what didn't.
+I built this with Claude as a pair programmer. I planned the mods, wrote parts of the code, directed the rest, and tested every change in-game. The findings in LESSONS-LEARNED.md came from that testing.
